@@ -3,7 +3,6 @@ use self::{
     panes::{Pane, behavior::Behavior},
     windows::About,
 };
-use crate::localization::{UiExt, localize};
 use eframe::{APP_KEY, CreationContext, Storage, get_value, set_value};
 use egui::{
     Align, Align2, CentralPanel, Color32, Context, FontDefinitions, Frame, Id, LayerId, Layout,
@@ -11,6 +10,7 @@ use egui::{
     warn_if_debug_build,
 };
 use egui_ext::{DroppedFileExt, HoveredFileExt, LabeledSeparator, LightDarkButton};
+use egui_l20n::{ResponseExt as _, UiExt as _};
 use egui_notify::Toasts;
 use egui_phosphor::{
     Variant, add_to_fonts,
@@ -162,7 +162,7 @@ impl App {
                     // Reset
                     if ui
                         .button(RichText::new(TRASH).size(ICON_SIZE))
-                        .on_hover_text(localize!("reset_application"))
+                        .on_hover_localized("reset_application")
                         .clicked()
                     {
                         *self = Default::default();
@@ -171,7 +171,7 @@ impl App {
                     ui.separator();
                     if ui
                         .button(RichText::new(ARROWS_CLOCKWISE).size(ICON_SIZE))
-                        .on_hover_text(localize!("reset_gui"))
+                        .on_hover_localized("reset_gui")
                         .clicked()
                     {
                         ui.memory_mut(|memory| {
@@ -182,7 +182,7 @@ impl App {
                     ui.separator();
                     if ui
                         .button(RichText::new(SQUARE_SPLIT_VERTICAL).size(ICON_SIZE))
-                        .on_hover_text(localize!("vertical"))
+                        .on_hover_localized("vertical")
                         .clicked()
                     {
                         if let Some(id) = self.tree.root {
@@ -193,7 +193,7 @@ impl App {
                     }
                     if ui
                         .button(RichText::new(SQUARE_SPLIT_HORIZONTAL).size(ICON_SIZE))
-                        .on_hover_text(localize!("horizontal"))
+                        .on_hover_localized("horizontal")
                         .clicked()
                     {
                         if let Some(id) = self.tree.root {
@@ -204,7 +204,7 @@ impl App {
                     }
                     if ui
                         .button(RichText::new(GRID_FOUR).size(ICON_SIZE))
-                        .on_hover_text(localize!("grid"))
+                        .on_hover_localized("grid")
                         .clicked()
                     {
                         if let Some(id) = self.tree.root {
@@ -215,7 +215,7 @@ impl App {
                     }
                     if ui
                         .button(RichText::new(TABS).size(ICON_SIZE))
-                        .on_hover_text(localize!("tabs"))
+                        .on_hover_localized("tabs")
                         .clicked()
                     {
                         if let Some(id) = self.tree.root {
@@ -229,7 +229,7 @@ impl App {
                     let mut resizable = true;
                     if ui
                         .button(RichText::new(ARROWS_HORIZONTAL).size(ICON_SIZE))
-                        .on_hover_text(localize!("resize"))
+                        .on_hover_localized("resize")
                         .clicked()
                     {
                         let mut panes = self.tree.tiles.panes_mut().peekable();
@@ -244,7 +244,7 @@ impl App {
                     let mut editable = true;
                     if ui
                         .button(RichText::new(PENCIL).size(ICON_SIZE))
-                        .on_hover_text(localize!("edit"))
+                        .on_hover_localized("edit")
                         .clicked()
                     {
                         let mut panes = self.tree.tiles.panes_mut().peekable();
@@ -275,7 +275,7 @@ impl App {
                         }
                         ui.separator();
                         // Locale
-                        ui.locale_button().on_hover_text(localize!("language"));
+                        ui.locale_button().on_hover_localized("language");
                     });
                 });
             });

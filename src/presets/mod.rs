@@ -1,12 +1,10 @@
-// pub(crate) use self::{_10_1016_j_algal_2018_11_004::*, _10_1021_jf903048p::*, ippras::*};
-
 use metadata::MetaDataFrame;
 use std::{io::Cursor, sync::LazyLock};
 
 macro preset($name:literal) {
     LazyLock::new(|| {
         let bytes = include_bytes!($name);
-        MetaDataFrame::read(Cursor::new(bytes)).expect(concat!("deserialize ", $name))
+        MetaDataFrame::read_ipc(Cursor::new(bytes)).expect(concat!("deserialize ", $name))
     })
 }
 

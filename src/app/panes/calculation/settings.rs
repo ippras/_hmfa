@@ -1,5 +1,6 @@
-use crate::{app::MAX_PRECISION, localization::localize};
+use crate::app::MAX_PRECISION;
 use egui::{Grid, Id, Slider, Ui, Widget};
+use egui_l20n::{ResponseExt as _, UiExt as _};
 use serde::{Deserialize, Serialize};
 
 use super::ID_SOURCE;
@@ -40,7 +41,7 @@ impl Settings {
         let id_salt = Id::new(ID_SOURCE).with("Settings");
         Grid::new(id_salt).show(ui, |ui| {
             // Precision
-            ui.label(localize!("precision"));
+            ui.label(ui.localize("precision"));
             Slider::new(&mut self.precision, 0..=MAX_PRECISION).ui(ui);
             ui.end_row();
 
@@ -49,22 +50,22 @@ impl Settings {
             ui.end_row();
 
             // Round
-            ui.label(localize!("round"));
+            ui.label(ui.localize("round"));
             Slider::new(&mut self.round, 0..=MAX_PRECISION as _)
                 .ui(ui)
-                .on_hover_text(localize!("round_description"));
+                .on_hover_localized("round_description");
             ui.end_row();
 
             // Properties
-            ui.label(localize!("properties"));
+            ui.label(ui.localize("properties"));
             ui.checkbox(&mut self.properties, "")
-                .on_hover_text(localize!("properties_description"));
+                .on_hover_localized("properties_description");
             ui.end_row();
 
             // Relative
-            ui.label(localize!("relative"));
+            ui.label(ui.localize("relative"));
             ui.checkbox(&mut self.relative, "")
-                .on_hover_text(localize!("relative_description"));
+                .on_hover_localized("relative_description");
         });
     }
 }

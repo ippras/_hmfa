@@ -1,21 +1,24 @@
 use super::{ID_SOURCE, Settings, State};
-use crate::app::{
-    MARGIN,
-    computers::{CalculationComputed, CalculationKey},
-    widgets::{FloatWidget, new_fatty_acid::FattyAcidWidget},
+use crate::{
+    app::{
+        MARGIN,
+        computers::{CalculationComputed, CalculationKey},
+        widgets::{FattyAcidWidget, FloatWidget},
+    },
+    utils::UiExt as _,
 };
 use egui::{Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui};
 use egui_phosphor::regular::{MINUS, PLUS};
 use egui_table::{
     AutoSizeMode, CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState,
 };
-use lipid::fatty_acid::{
-    FattyAcid,
+use lipid::{
+    fatty_acid::FattyAcid,
     polars::{DataFrameExt as _, SeriesExt as _},
 };
 use polars::{chunked_array::builder::AnonymousOwnedListBuilder, prelude::*};
-use re_ui::UiExt as _;
 use std::ops::Range;
+use tracing::instrument;
 
 const ID: Range<usize> = 0..2;
 const EXPERIMENTAL: Range<usize> = ID.end..ID.end + 2;
@@ -169,6 +172,7 @@ impl TableView<'_> {
         };
     }
 
+    #[instrument(skip(self, ui), err)]
     fn cell_content_ui(
         &mut self,
         ui: &mut Ui,
@@ -203,10 +207,15 @@ impl TableView<'_> {
                 ui.label(index.to_string());
             }
             (row, &id::FA) => {
-                let inner_response = FattyAcidWidget::new(|| self.source.fatty_acid().get(row))
-                    .editable(self.settings.editable)
-                    .hover()
-                    .ui(ui)?;
+                let inner_response = FattyAcidWidget::new(|| {
+                    let Some(series) = self.source.fatty_acid()?.get(row) else {
+                        return Ok(None);
+                    };
+                    Ok(Some(series.bound()?))
+                })
+                .editable(self.settings.editable)
+                .hover()
+                .ui(ui);
                 if let Some(value) = inner_response.inner {
                     self.source
                         .try_apply("FattyAcid", change_fatty_acid(row, &value))?;
@@ -576,7 +585,7 @@ impl TableDelegate for TableView<'_> {
             ui.painter()
                 .rect_filled(ui.max_rect(), 0.0, ui.visuals().faint_bg_color);
         }
-        Frame::none()
+        Frame::new()
             .inner_margin(Margin::symmetric(MARGIN.x, MARGIN.y))
             .show(ui, |ui| {
                 self.cell_content_ui(ui, cell.row_nr as _, cell.col_nr..cell.col_nr + 1)

@@ -1,11 +1,12 @@
 use self::{settings::Settings, state::State, table::TableView};
-use crate::{localization::localize, utils::save};
+use crate::utils::{save, title};
 use anyhow::Result;
 use egui::{CursorIcon, Response, RichText, ScrollArea, Ui, Window, menu::bar, util::hash};
+use egui_l20n::ResponseExt as _;
 use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, ERASER, FLOPPY_DISK, GEAR, NOTE_PENCIL, PENCIL, TAG,
 };
-use metadata::MetaDataFrame;
+use metadata::{MetaDataFrame, NAME, VERSION, egui::MetadataWidget};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use tracing::error;
@@ -34,7 +35,7 @@ impl Pane {
     }
 
     pub(crate) fn title(&self) -> String {
-        self.frame.meta.title()
+        title(&self.frame.meta)
     }
 
     pub(crate) fn header(&mut self, ui: &mut Ui) -> Response {
@@ -50,9 +51,7 @@ impl Pane {
     }
 
     fn header_content(&mut self, ui: &mut Ui) -> Response {
-        let mut response = ui
-            .heading(Self::icon())
-            .on_hover_text(localize!("configuration"));
+        let mut response = ui.heading(Self::icon()).on_hover_localized("configuration");
         response |= ui.heading(self.title());
         response = response
             .on_hover_text(format!("{:x}", self.hash()))
@@ -70,10 +69,10 @@ impl Pane {
             &mut self.settings.resizable,
             RichText::new(ARROWS_HORIZONTAL).heading(),
         )
-        .on_hover_text(localize!("resize"));
+        .on_hover_localized("resize");
         // Edit
         ui.toggle_value(&mut self.settings.editable, RichText::new(PENCIL).heading())
-            .on_hover_text(localize!("edit"));
+            .on_hover_localized("edit");
         ui.separator();
         // Clear
         ui.add_enabled_ui(
@@ -81,7 +80,7 @@ impl Pane {
             |ui| {
                 if ui
                     .button(RichText::new(ERASER).heading())
-                    .on_hover_text(localize!("clear"))
+                    .on_hover_localized("clear")
                     .clicked()
                 {
                     self.frame.data = self.frame.data.clear();
@@ -94,11 +93,11 @@ impl Pane {
             &mut self.state.open_settings_window,
             RichText::new(GEAR).heading(),
         )
-        .on_hover_text(localize!("settings"));
+        .on_hover_localized("settings");
         ui.separator();
         if ui
             .button(RichText::new(FLOPPY_DISK).heading())
-            .on_hover_text(localize!("save"))
+            .on_hover_localized("save")
             .on_hover_text(&self.settings.label)
             .clicked()
         {
@@ -120,7 +119,7 @@ impl Pane {
     fn body_content_meta(&mut self, ui: &mut Ui) {
         ui.style_mut().visuals.collapsing_header_frame = true;
         ui.collapsing(RichText::new(format!("{TAG} Metadata")).heading(), |ui| {
-            self.frame.meta.show(ui);
+            MetadataWidget::new(&mut self.frame.meta).show(ui);
         });
     }
 
@@ -133,8 +132,8 @@ impl Pane {
     }
 
     fn save(&mut self) -> Result<()> {
-        let mut name = self.frame.meta.name.replace(" ", "_");
-        if let Some(version) = &self.frame.meta.version {
+        let mut name = self.frame.meta[NAME].replace(" ", "_");
+        if let Some(version) = self.frame.meta.get(VERSION) {
             write!(name, ".{version}")?;
         }
         name.push_str(".hmf.ipc");

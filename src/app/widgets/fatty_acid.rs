@@ -1,21 +1,17 @@
 use crate::presets::_10_1021_jf903048p::MATURE_MILK_FAT;
 use egui::{ComboBox, InnerResponse, Ui};
-use lipid::fatty_acid::{
-    FattyAcid,
-    display::{COMMON, DisplayWithOptions},
-    polars::DataFrameExt as _,
-};
+use lipid::{display::FattyAcid, prelude::*};
 use polars::prelude::*;
 
 /// Fatty acid widget
 pub(crate) struct FattyAcidWidget<'a> {
-    pub(crate) value: Box<dyn Fn() -> PolarsResult<Option<FattyAcid>> + 'a>,
+    pub(crate) value: Box<dyn Fn() -> PolarsResult<Option<&'a BoundChunked>> + 'a>,
     pub(crate) editable: bool,
     pub(crate) hover: bool,
 }
 
 impl<'a> FattyAcidWidget<'a> {
-    pub(crate) fn new(value: impl Fn() -> PolarsResult<Option<FattyAcid>> + 'a) -> Self {
+    pub(crate) fn new(value: impl Fn() -> PolarsResult<Option<&'a BoundChunked>> + 'a) -> Self {
         Self {
             value: Box::new(value),
             editable: false,
@@ -34,10 +30,10 @@ impl<'a> FattyAcidWidget<'a> {
         }
     }
 
-    pub(crate) fn try_ui(self, ui: &mut Ui) -> PolarsResult<InnerResponse<Option<FattyAcid>>> {
+    pub(crate) fn try_ui(self, ui: &mut Ui) -> PolarsResult<InnerResponse<Option<BoundChunked>>> {
         let fatty_acid = (self.value)()?;
-        let text = match &fatty_acid {
-            Some(fatty_acid) => &format!("{:#}", fatty_acid.display(COMMON)),
+        let text = match fatty_acid {
+            Some(fatty_acid) => &format!("{:#}", fatty_acid.display(Default::default())?),
             None => "",
         };
         let mut inner = None;
@@ -47,10 +43,13 @@ impl<'a> FattyAcidWidget<'a> {
                 .width(ui.available_width())
                 .selected_text(text)
                 .show_ui(ui, |ui| -> PolarsResult<()> {
-                    let mature_milk = MATURE_MILK_FAT.data.fatty_acid();
+                    let mature_milk = MATURE_MILK_FAT.data.fatty_acid()?;
                     for index in 0..mature_milk.len() {
-                        if let Some(selected_value) = mature_milk.get(index)? {
-                            let text = format!("{:#}", (&selected_value).display(COMMON));
+                        if let Some(selected_value) = mature_milk.get(index) {
+                            let text = format!(
+                                "{:#}",
+                                selected_value.bound()?.display(Default::default())?,
+                            );
                             if ui
                                 .selectable_value(current_value, selected_value, text)
                                 .changed()
@@ -71,7 +70,7 @@ impl<'a> FattyAcidWidget<'a> {
         Ok(InnerResponse::new(inner, response))
     }
 
-    pub(crate) fn ui(self, ui: &mut Ui) -> InnerResponse<Option<FattyAcid>> {
+    pub(crate) fn ui(self, ui: &mut Ui) -> InnerResponse<Option<BoundChunked>> {
         self.try_ui(ui).expect("Fatty acid widget")
     }
 }
