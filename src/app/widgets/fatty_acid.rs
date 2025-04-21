@@ -1,17 +1,17 @@
 use crate::presets::_10_1021_jf903048p::MATURE_MILK_FAT;
 use egui::{ComboBox, InnerResponse, Ui};
-use lipid::{display::FattyAcid, prelude::*};
+use lipid::prelude::*;
 use polars::prelude::*;
 
 /// Fatty acid widget
 pub(crate) struct FattyAcidWidget<'a> {
-    pub(crate) value: Box<dyn Fn() -> PolarsResult<Option<&'a BoundChunked>> + 'a>,
+    pub(crate) value: Box<dyn Fn() -> PolarsResult<Option<BoundChunked>> + 'a>,
     pub(crate) editable: bool,
     pub(crate) hover: bool,
 }
 
 impl<'a> FattyAcidWidget<'a> {
-    pub(crate) fn new(value: impl Fn() -> PolarsResult<Option<&'a BoundChunked>> + 'a) -> Self {
+    pub(crate) fn new(value: impl Fn() -> PolarsResult<Option<BoundChunked>> + 'a) -> Self {
         Self {
             value: Box::new(value),
             editable: false,
@@ -32,13 +32,13 @@ impl<'a> FattyAcidWidget<'a> {
 
     pub(crate) fn try_ui(self, ui: &mut Ui) -> PolarsResult<InnerResponse<Option<BoundChunked>>> {
         let fatty_acid = (self.value)()?;
-        let text = match fatty_acid {
+        let text = match &fatty_acid {
             Some(fatty_acid) => &format!("{:#}", fatty_acid.display(Default::default())?),
             None => "",
         };
         let mut inner = None;
         let mut response = if self.editable {
-            let current_value = &mut fatty_acid.unwrap_or_default();
+            let current_value = fatty_acid.unwrap_or_default();
             let response = ComboBox::from_id_salt(ui.next_auto_id())
                 .width(ui.available_width())
                 .selected_text(text)
@@ -46,16 +46,14 @@ impl<'a> FattyAcidWidget<'a> {
                     let mature_milk = MATURE_MILK_FAT.data.fatty_acid()?;
                     for index in 0..mature_milk.len() {
                         if let Some(selected_value) = mature_milk.get(index) {
-                            let text = format!(
-                                "{:#}",
-                                selected_value.bound()?.display(Default::default())?,
-                            );
-                            if ui
-                                .selectable_value(current_value, selected_value, text)
-                                .changed()
-                            {
-                                inner = Some(current_value.clone())
-                            }
+                            let selected_value = selected_value.bound()?;
+                            let text = format!("{:#}", selected_value.display(Default::default())?);
+                            // if ui
+                            //     .selectable_value(current_value, *selected_value, text)
+                            //     .changed()
+                            // {
+                            //     inner = Some(current_value.clone())
+                            // }
                         }
                     }
                     Ok(())
