@@ -64,12 +64,12 @@ pub(crate) mod _10_1038_sj_ejcn_1601470 {
 pub(crate) mod ippras {
     use super::*;
 
-    pub(crate) static C70_CONTROL: LazyLock<MetaDataFrame> = preset!("ippras/C70_Control.hmf.ipc");
-    pub(crate) static C70_H2O2: LazyLock<MetaDataFrame> = preset!("ippras/C70_H2O2.hmf.ipc");
-    pub(crate) static C70_NACL: LazyLock<MetaDataFrame> = preset!("ippras/C70_NaCl.hmf.ipc");
+    pub(crate) static C70_CONTROL: LazyLock<MetaDataFrame> = preset!("ippras/C70_Control.arrow");
+    pub(crate) static C70_H2O2: LazyLock<MetaDataFrame> = preset!("ippras/C70_H2O2.arrow");
+    pub(crate) static C70_NACL: LazyLock<MetaDataFrame> = preset!("ippras/C70_NaCl.arrow");
 
-    pub(crate) static H242_N_1: LazyLock<MetaDataFrame> = preset!("ippras/H242_-N.0.0.1.hmf.ipc");
-    pub(crate) static H242_N_2: LazyLock<MetaDataFrame> = preset!("ippras/H242_-N.0.0.2.hmf.ipc");
-    pub(crate) static H242_N_3: LazyLock<MetaDataFrame> = preset!("ippras/H242_-N.0.0.3.hmf.ipc");
-    pub(crate) static H242_N: LazyLock<MetaDataFrame> = preset!("ippras/H242_-N.hmf.ipc");
+    pub(crate) static H242_N_1: LazyLock<MetaDataFrame> = preset!("ippras/H242_-N.1.arrow");
+    pub(crate) static H242_N_2: LazyLock<MetaDataFrame> = preset!("ippras/H242_-N.2.arrow");
+    pub(crate) static H242_N_3: LazyLock<MetaDataFrame> = preset!("ippras/H242_-N.3.arrow");
+    pub(crate) static H242_N: LazyLock<MetaDataFrame> = preset!("ippras/H242_-N.arrow");
 }

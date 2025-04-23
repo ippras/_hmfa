@@ -1,6 +1,7 @@
 [package]
 name = "hmfa"
 version = "0.1.0"
+authors = ["Giorgi Kazakov", "Roman Sidorov"]
 edition = "2024"
 
 [dependencies]
