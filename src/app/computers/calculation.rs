@@ -3,7 +3,7 @@ use crate::{
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use polars::prelude::*;
-use polars_ext::{ExprExt, column};
+use polars_ext::{prelude::ExprExt, series::column};
 use std::{
     hash::{Hash, Hasher},
     iter::zip,

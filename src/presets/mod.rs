@@ -43,7 +43,7 @@ pub(crate) mod _10_1021_jf903048p {
     use super::*;
 
     pub(crate) static MATURE_MILK_FAT: LazyLock<MetaDataFrame> =
-        preset!("10.1021/jf903048p/MatureMilkFat.ipc");
+        preset!("10.1021/jf903048p/MatureMilk.arrow");
 
     pub(crate) static CMF_AF: LazyLock<MetaDataFrame> = preset!("10.1021/jf903048p/CMF-AF.hmf.ipc");
     pub(crate) static CMF_AP: LazyLock<MetaDataFrame> = preset!("10.1021/jf903048p/CMF-AP.hmf.ipc");

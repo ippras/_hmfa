@@ -103,7 +103,7 @@ fn doi_separator(doi: &str) -> impl Fn(&mut Ui) -> Response {
 
 fn ipc(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
     let file = File::create(name)?;
-    MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write(file)?;
+    MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write_ipc(file)?;
     Ok(())
 }
 

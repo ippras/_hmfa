@@ -12,10 +12,7 @@ use egui_phosphor::regular::{MINUS, PLUS};
 use egui_table::{
     AutoSizeMode, CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState,
 };
-use lipid::{
-    fatty_acid::FattyAcid,
-    polars::{DataFrameExt as _, SeriesExt as _},
-};
+use lipid::prelude::*;
 use polars::{chunked_array::builder::AnonymousOwnedListBuilder, prelude::*};
 use std::ops::Range;
 use tracing::instrument;
@@ -207,15 +204,11 @@ impl TableView<'_> {
                 ui.label(index.to_string());
             }
             (row, &id::FA) => {
-                let inner_response = FattyAcidWidget::new(|| {
-                    let Some(series) = self.source.fatty_acid()?.get(row) else {
-                        return Ok(None);
-                    };
-                    Ok(Some(series.bound()?.clone()))
-                })
-                .editable(self.settings.editable)
-                .hover()
-                .ui(ui);
+                let inner_response =
+                    FattyAcidWidget::new(|| Ok(self.source.try_fatty_acid_list()?.get(row)))
+                        .editable(self.settings.editable)
+                        .hover()
+                        .ui(ui);
                 if let Some(value) = inner_response.inner {
                     // self.source
                     //     .try_apply("FattyAcid", change_fatty_acid(row, &value))?;

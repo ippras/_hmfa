@@ -5,13 +5,13 @@ use polars::prelude::*;
 
 /// Fatty acid widget
 pub(crate) struct FattyAcidWidget<'a> {
-    pub(crate) value: Box<dyn Fn() -> PolarsResult<Option<BoundChunked>> + 'a>,
+    pub(crate) value: Box<dyn Fn() -> PolarsResult<Option<FattyAcidChunked>> + 'a>,
     pub(crate) editable: bool,
     pub(crate) hover: bool,
 }
 
 impl<'a> FattyAcidWidget<'a> {
-    pub(crate) fn new(value: impl Fn() -> PolarsResult<Option<BoundChunked>> + 'a) -> Self {
+    pub(crate) fn new(value: impl Fn() -> PolarsResult<Option<FattyAcidChunked>> + 'a) -> Self {
         Self {
             value: Box::new(value),
             editable: false,
@@ -30,10 +30,13 @@ impl<'a> FattyAcidWidget<'a> {
         }
     }
 
-    pub(crate) fn try_ui(self, ui: &mut Ui) -> PolarsResult<InnerResponse<Option<BoundChunked>>> {
+    pub(crate) fn try_ui(
+        self,
+        ui: &mut Ui,
+    ) -> PolarsResult<InnerResponse<Option<FattyAcidChunked>>> {
         let fatty_acid = (self.value)()?;
         let text = match &fatty_acid {
-            Some(fatty_acid) => &format!("{:#}", fatty_acid.display(Default::default())?),
+            Some(fatty_acid) => &format!("{:#}", fatty_acid.display(Default::default())),
             None => "",
         };
         let mut inner = None;
@@ -43,18 +46,18 @@ impl<'a> FattyAcidWidget<'a> {
                 .width(ui.available_width())
                 .selected_text(text)
                 .show_ui(ui, |ui| -> PolarsResult<()> {
-                    let mature_milk = MATURE_MILK_FAT.data.fatty_acid()?;
-                    for index in 0..mature_milk.len() {
-                        if let Some(selected_value) = mature_milk.get(index) {
-                            let selected_value = selected_value.bound()?;
-                            let text = format!("{:#}", selected_value.display(Default::default())?);
-                            // if ui
-                            //     .selectable_value(current_value, *selected_value, text)
-                            //     .changed()
-                            // {
-                            //     inner = Some(current_value.clone())
-                            // }
-                        }
+                    let mature_milk = MATURE_MILK_FAT.data.try_fatty_acid_list()?;
+                    for selected_value in mature_milk.iter() {
+                        let text = format!("{:#}", selected_value.display(Default::default()));
+                        // if let Some(selected_value) = mature_milk.get(index) {
+                        //     let text = format!("{:#}", selected_value.display(Default::default()));
+                        //     // if ui
+                        //     //     .selectable_value(current_value, *selected_value, text)
+                        //     //     .changed()
+                        //     // {
+                        //     //     inner = Some(current_value.clone())
+                        //     // }
+                        // }
                     }
                     Ok(())
                 });
@@ -68,7 +71,7 @@ impl<'a> FattyAcidWidget<'a> {
         Ok(InnerResponse::new(inner, response))
     }
 
-    pub(crate) fn ui(self, ui: &mut Ui) -> InnerResponse<Option<BoundChunked>> {
+    pub(crate) fn ui(self, ui: &mut Ui) -> InnerResponse<Option<FattyAcidChunked>> {
         self.try_ui(ui).expect("Fatty acid widget")
     }
 }

@@ -1,7 +1,7 @@
 [package]
 name = "hmfa"
 version = "0.1.0"
-authors = ["Giorgi Kazakov", "Roman Sidorov"]
+authors = ["Giorgi Vladimirovich Kazakov", "Roman Alexandrovich Sidorov"]
 edition = "2024"
 
 [dependencies]
@@ -24,7 +24,7 @@ egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
 egui_table = "0.3.0"
 egui_tiles = "0.12.0"
 egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext" }
-lipid = { git = "https://github.com/ippras/lipid", branch = "single", features = [
+lipid = { git = "https://github.com/ippras/lipid", branch = "double", features = [
     "polars",
 ] }
 log = "0.4.27"
@@ -32,7 +32,7 @@ metadata = { git = "https://github.com/ippras/metadata", branch = "map", feature
     "egui",
 ] }
 parking_lot = "0.12.3"
-polars = { version = "0.46.0", default-features = false, features = [
+polars = { version = "0.47.1", default-features = false, features = [
     "cum_agg",
     "dtype-categorical",
     "dtype-i8",
@@ -46,14 +46,14 @@ polars_ext = { git = "https://github.com/kgv/polars_ext" }
 semver = { version = "1.0.26", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive", "std"] }
 tracing = "0.1.41"
-unic-langid = { version = "0.9.5", features = ["macros"] }
+unic-langid = { version = "0.9.6", features = ["macros"] }
 # re_ui = "0.22.1"
 # ron = "0.10.1"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 poll-promise = { version = "0.3.0", features = ["tokio"] }
-tokio = { version = "1.44.2", features = ["full"] }
+tokio = { version = "1.45.0", features = ["full"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 # web
