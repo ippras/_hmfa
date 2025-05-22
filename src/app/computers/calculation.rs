@@ -1,5 +1,5 @@
 use crate::{
-    app::panes::calculation::settings::Settings, presets::_10_1021_jf903048p::MATURE_MILK_FAT,
+    app::panes::calculation::settings::Settings, presets::_10_1021_jf903048p::MATURE_MILK,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use polars::prelude::*;
@@ -21,7 +21,7 @@ pub(crate) struct Computer;
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
         let mut lazy_frame = key.data_frame.clone().lazy();
-        let other = MATURE_MILK_FAT.data.clone().lazy().select([
+        let other = MATURE_MILK.data.clone().lazy().select([
             col("FattyAcid").hash(),
             col("FattyAcid"),
             col("StereospecificNumber123").alias("Target123"),

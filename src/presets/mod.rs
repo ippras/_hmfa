@@ -4,7 +4,7 @@ use std::{io::Cursor, sync::LazyLock};
 macro preset($name:literal) {
     LazyLock::new(|| {
         let bytes = include_bytes!($name);
-        MetaDataFrame::read_ipc(Cursor::new(bytes)).expect(concat!("deserialize ", $name))
+        MetaDataFrame::read_ipc(Cursor::new(bytes)).expect(concat!("preset ", $name))
     })
 }
 
@@ -42,8 +42,8 @@ pub(crate) mod _10_1016_j_algal_2018_11_004 {
 pub(crate) mod _10_1021_jf903048p {
     use super::*;
 
-    pub(crate) static MATURE_MILK_FAT: LazyLock<MetaDataFrame> =
-        preset!("10.1021/jf903048p/MatureMilk.arrow");
+    pub(crate) static MATURE_MILK: LazyLock<MetaDataFrame> =
+        preset!("10.1021/jf903048p/MatureMilk.ipc");
 
     pub(crate) static CMF_AF: LazyLock<MetaDataFrame> = preset!("10.1021/jf903048p/CMF-AF.hmf.ipc");
     pub(crate) static CMF_AP: LazyLock<MetaDataFrame> = preset!("10.1021/jf903048p/CMF-AP.hmf.ipc");
@@ -64,7 +64,8 @@ pub(crate) mod _10_1038_sj_ejcn_1601470 {
 pub(crate) mod ippras {
     use super::*;
 
-    pub(crate) static C70_CONTROL: LazyLock<MetaDataFrame> = preset!("ippras/C70_Control.arrow");
+    // pub(crate) static C70_CONTROL: LazyLock<MetaDataFrame> = preset!("ippras/C70_Control.arrow");
+    pub(crate) static C70_CONTROL: LazyLock<MetaDataFrame> = preset!("ippras/C70_Control.hmfa.ipc");
     pub(crate) static C70_H2O2: LazyLock<MetaDataFrame> = preset!("ippras/C70_H2O2.arrow");
     pub(crate) static C70_NACL: LazyLock<MetaDataFrame> = preset!("ippras/C70_NaCl.arrow");
 

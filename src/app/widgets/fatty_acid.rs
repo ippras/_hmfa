@@ -1,4 +1,4 @@
-use crate::presets::_10_1021_jf903048p::MATURE_MILK_FAT;
+use crate::presets::_10_1021_jf903048p::MATURE_MILK;
 use egui::{ComboBox, InnerResponse, Ui};
 use lipid::prelude::*;
 use polars::prelude::*;
@@ -46,7 +46,7 @@ impl<'a> FattyAcidWidget<'a> {
                 .width(ui.available_width())
                 .selected_text(text)
                 .show_ui(ui, |ui| -> PolarsResult<()> {
-                    let mature_milk = MATURE_MILK_FAT.data.try_fatty_acid_list()?;
+                    let mature_milk = MATURE_MILK.data.try_fatty_acid_list()?;
                     for selected_value in mature_milk.iter() {
                         let text = format!("{:#}", selected_value.display(Default::default()));
                         // if let Some(selected_value) = mature_milk.get(index) {
