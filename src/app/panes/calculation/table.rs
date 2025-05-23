@@ -210,19 +210,10 @@ impl TableView<'_> {
                         .editable(self.settings.editable)
                         .hover()
                         .show(ui);
-                if let Some(value) = inner_response.inner {
-                    // self.source
-                    //     .try_apply("FattyAcid", change_fatty_acid(row, &value))?;
+                if inner_response.response.changed() {
+                    self.source
+                        .try_apply("FattyAcid", update_fatty_acid(row, inner_response.inner))?;
                 }
-                // let inner_response =
-                //     FattyAcidWidget::new(|| Ok(self.source.try_fatty_acid_list()?.get(row)))
-                //         .editable(self.settings.editable)
-                //         .hover()
-                //         .ui(ui);
-                // if let Some(value) = inner_response.inner {
-                //     // self.source
-                //     //     .try_apply("FattyAcid", change_fatty_acid(row, &value))?;
-                // }
             }
             (row, &experimental::SN123) => {
                 self.rw(ui, row, "StereospecificNumber123")?;
@@ -594,6 +585,116 @@ impl TableDelegate for TableView<'_> {
                 self.cell_content_ui(ui, cell.row_nr as _, cell.col_nr..cell.col_nr + 1)
                     .unwrap()
             });
+    }
+}
+
+// TODO: change existing `ChunkedArrays` rather than creating new ones
+fn update_fatty_acid(
+    row: usize,
+    value: Option<FattyAcidChunked>,
+) -> impl FnMut(&Series) -> PolarsResult<Series> + 'static {
+    move |series| {
+        let out = series
+            .fatty_acid_list()
+            .iter()
+            .enumerate()
+            .map(|(index, fatty_acid)| {
+                Ok(if index == row {
+                    match value.clone() {
+                        Some(value) => Some(value.into_struct(PlSmallStr::EMPTY)?.into_series()),
+                        None => None,
+                    }
+                } else {
+                    Some(fatty_acid.into_struct(PlSmallStr::EMPTY)?.into_series())
+                })
+            })
+            .collect::<PolarsResult<ListChunked>>()?;
+        println!("out: {out:?}");
+        Ok(out.into_series())
+        // unimplemented!();
+        // let list = series.fatty_acid_list().as_list();
+        // println!("fatty_acid_series: {list:?}");
+        // let mut builder = AnonymousOwnedListBuilder::new(
+        //     list.name().clone(),
+        //     list.len(),
+        //     list.dtype().inner_dtype().cloned(),
+        // );
+        // // let value = value.map(|value| value.into_struct(PlSmallStr::EMPTY)?.into_series());
+        // for index in 0..list.len() {
+        //     if index == row {
+        //         let value = match value.clone() {
+        //             Some(value) => Some(value.into_struct(PlSmallStr::EMPTY)?.into_series()),
+        //             None => None,
+        //         };
+        //         builder.append_opt_series(value.as_ref())?;
+        //     } else {
+        //         builder.append_opt_series(list.get_as_series(index).as_ref());
+        //     }
+        // }
+        // Ok(builder
+        //     .finish()
+        //     // .cast(&DataType::List(FATTY_ACID_DATA_TYPE.clone().boxed()))?
+        //     .into_series())
+
+        // unimplemented!()
+        // for index in 0..fatty_acid_series.len() {
+        //     let mut fatty_acid = fatty_acid_series.get(index)?;
+        //     if index == row {
+        //         fatty_acid = value.clone();
+        //     }
+        //     let fatty_acid = fatty_acid.as_ref();
+        //     // Carbons
+        //     carbons.append_option(fatty_acid.map(|fatty_acid| fatty_acid.carbons));
+        //     // Unsaturated
+        //     if let Some(fatty_acid) = fatty_acid {
+        //         let mut index = PrimitiveChunkedBuilder::<UInt8Type>::new(
+        //             "Index".into(),
+        //             fatty_acid.unsaturated.len(),
+        //         );
+        //         let mut isomerism = PrimitiveChunkedBuilder::<Int8Type>::new(
+        //             "Isomerism".into(),
+        //             fatty_acid.unsaturated.len(),
+        //         );
+        //         let mut unsaturation = PrimitiveChunkedBuilder::<UInt8Type>::new(
+        //             "Unsaturation".into(),
+        //             fatty_acid.unsaturated.len(),
+        //         );
+        //         for unsaturated in &fatty_acid.unsaturated {
+        //             index.append_option(unsaturated.index);
+        //             isomerism.append_option(unsaturated.isomerism.map(|isomerism| isomerism as _));
+        //             unsaturation.append_option(
+        //                 unsaturated
+        //                     .unsaturation
+        //                     .map(|unsaturation| unsaturation as _),
+        //             );
+        //         }
+        //         unsaturated.append_series(
+        //             &StructChunked::from_series(
+        //                 PlSmallStr::EMPTY,
+        //                 fatty_acid.unsaturated.len(),
+        //                 [
+        //                     index.finish().into_series(),
+        //                     isomerism.finish().into_series(),
+        //                     unsaturation.finish().into_series(),
+        //                 ]
+        //                 .iter(),
+        //             )?
+        //             .into_series(),
+        //         )?;
+        //     } else {
+        //         unsaturated.append_opt_series(None)?;
+        //     }
+        // }
+        // Ok(StructChunked::from_series(
+        //     series.name().clone(),
+        //     fatty_acid_series.len(),
+        //     [
+        //         carbons.finish().into_series(),
+        //         unsaturated.finish().into_series(),
+        //     ]
+        //     .iter(),
+        // )?
+        // .into_series())
     }
 }
 

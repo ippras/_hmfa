@@ -26,6 +26,7 @@ egui_tiles = "0.12.0"
 egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext" }
 lipid = { git = "https://github.com/ippras/lipid", branch = "double", features = [
     "polars",
+    "serde",
 ] }
 log = "0.4.27"
 metadata = { git = "https://github.com/ippras/metadata", branch = "map", features = [

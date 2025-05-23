@@ -46,7 +46,7 @@ impl FattyAcidWidget {
     pub(crate) fn show(self, ui: &mut Ui) -> InnerResponse<Option<FattyAcidChunked>> {
         let mut inner = None;
         // None
-        let Some(mut fatty_acid) = self.fatty_acid else {
+        let Some(fatty_acid) = self.fatty_acid else {
             let mut response = ui.label("None");
             if self.editable {
                 let mut changed = false;
@@ -73,7 +73,7 @@ impl FattyAcidWidget {
                     let response = ui
                         .menu_button(text, |ui| {
                             let response =
-                                FattyAcidContent::new(self.id_salt, &mut fatty_acid).show(ui);
+                                FattyAcidContent::new(self.id_salt, &fatty_acid).show(ui);
                             inner = Some(fatty_acid.clone());
                             changed |= response.changed();
                         })
@@ -150,11 +150,11 @@ impl Widget for FattyAcidWidget {
 /// Fatty acid content
 struct FattyAcidContent<'a> {
     id_salt: Id,
-    fatty_acid: &'a mut FattyAcidChunked,
+    fatty_acid: &'a FattyAcidChunked,
 }
 
 impl<'a> FattyAcidContent<'a> {
-    fn new(id_salt: Id, fatty_acid: &'a mut FattyAcidChunked) -> Self {
+    fn new(id_salt: Id, fatty_acid: &'a FattyAcidChunked) -> Self {
         Self {
             id_salt,
             fatty_acid,
@@ -173,9 +173,8 @@ impl<'a> FattyAcidContent<'a> {
         let mut state: State = ui.data_mut(|data| data.get_temp(self.id_salt).unwrap_or_default());
 
         let mut outer_response = ui.allocate_response(Default::default(), Sense::hover());
-        let openness = ui.ctx().animate_bool(self.id_salt, state.open);
+        let openness = ui.ctx().animate_bool(self.id_salt, state.is_opened);
         Grid::new(ui.auto_id_with(self.id_salt)).show(ui, |ui| {
-            let width = ui.spacing().combo_width / 2.0;
             for (index, (mut offset, mut bound)) in self.fatty_acid.iter().enumerate() {
                 let text = match offset {
                     Some(Some(index)) => &index.to_string(),
@@ -183,107 +182,85 @@ impl<'a> FattyAcidContent<'a> {
                     None => "*",
                 };
                 let delta = (index + 1) as i8;
-                if let Some(response) = ComboBox::from_id_salt(ui.auto_id_with(self.id_salt))
+                let response = ComboBox::from_id_salt(ui.auto_id_with(self.id_salt))
                     .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
-                    .width(width)
+                    .width(ui.spacing().combo_width / 2.0)
                     .selected_text(text)
                     .show_ui(ui, |ui| {
-                        let mut response = ui.selectable_value(
+                        ui.selectable_value(
                             &mut offset,
                             Some(NonZeroI8::new(delta)),
                             delta.to_string(),
                         );
-                        response |= ui.selectable_value(&mut offset, Some(None), "?");
-                        response |= ui.selectable_value(&mut offset, None, "*");
-                        response
+                        ui.selectable_value(&mut offset, Some(None), "?");
+                        ui.selectable_value(&mut offset, None, "*");
                     })
-                    .inner
-                    && response.changed()
-                {
-                    state.change = Some(Kind::Index(Change {
-                        index,
-                        value: offset,
-                    }));
+                    .response;
+                if response.changed() {
+                    state.changed = Some((index, offset));
                 }
-                let text = format!("{bound:#}");
-                if let Some(response) = ComboBox::from_id_salt(ui.auto_id_with(self.id_salt))
+                let text = Bound::display(bound).to_string();
+                ComboBox::from_id_salt(ui.auto_id_with(self.id_salt))
                     .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
-                    .width(width)
+                    .width(ui.spacing().combo_width / 2.0)
                     .selected_text(text)
                     .show_ui(ui, |ui| {
-                        let mut response = ui.selectable_value(&mut bound, Bound::S, S);
-                        response |= ui.selectable_value(&mut bound, Bound::D, D);
-                        response |= ui.selectable_value(&mut bound, Bound::DC, DC);
-                        response |= ui.selectable_value(&mut bound, Bound::DT, DT);
-                        response |= ui.selectable_value(&mut bound, Bound::T, T);
-                        response |= ui.selectable_value(&mut bound, Bound::TC, TC);
-                        response |= ui.selectable_value(&mut bound, Bound::TT, TT);
-                        response |= ui.selectable_value(&mut bound, Bound::U, U);
-                        response |= ui.selectable_value(&mut bound, Bound::UC, UC);
-                        response |= ui.selectable_value(&mut bound, Bound::UT, UT);
-                        response |= ui.selectable_value(&mut bound, Bound::B, B);
-                        response
-                    })
-                    .inner
-                    && response.changed()
-                {
-                    state.change = Some(Kind::Bound(Change {
-                        index,
-                        value: offset,
-                    }));
-                }
+                        ui.selectable_value(&mut bound, Some(Bound::S), S);
+                        ui.selectable_value(&mut bound, Some(Bound::D), D);
+                        ui.selectable_value(&mut bound, Some(Bound::DC), DC);
+                        ui.selectable_value(&mut bound, Some(Bound::DT), DT);
+                        ui.selectable_value(&mut bound, Some(Bound::T), T);
+                        ui.selectable_value(&mut bound, Some(Bound::TC), TC);
+                        ui.selectable_value(&mut bound, Some(Bound::TT), TT);
+                        ui.selectable_value(&mut bound, Some(Bound::U), U);
+                        ui.selectable_value(&mut bound, Some(Bound::UC), UC);
+                        ui.selectable_value(&mut bound, Some(Bound::UT), UT);
+                        ui.selectable_value(&mut bound, None, B);
+                    });
                 ui.end_row();
             }
         });
-        if let Some(kind) = state.change.take() {
-            println!("Kind::Index(change)!!!!!!!!!!!!!!!!!!!! {:?}", kind);
-            match kind {
-                Kind::Index(change) => {
-                    let index = self
-                        .fatty_acid
-                        .index()
-                        .iter()
-                        .enumerate()
-                        .map(|(index, value)| {
-                            if index == change.index {
-                                Some(match change.value? {
-                                    Some(value) => value.get(),
-                                    None => 0,
-                                })
-                            } else {
-                                value
-                            }
-                        })
-                        .collect::<Int8Chunked>()
-                        .with_name(INDEX.into());
-                    *self.fatty_acid.index_mut() = index;
-                }
-                Kind::Bound(change) => {
-                    // let categorical = self
-                    //     .fatty_acid
-                    //     .bound()
-                    //     .iter()
-                    //     .enumerate()
-                    //     .map(|(index, value)| {
-                    //         if index == change.index {
-                    //             Some(match change.value? {
-                    //                 Some(value) => value.get(),
-                    //                 None => 0,
-                    //             })
-                    //         } else {
-                    //             value
-                    //         }
-                    //     })
-                    //     .collect::<CategoricalChunked>()
-                    //     .with_name(INDEX.into());
-                    // let bound = BoundChunked::new(categorical);
-                    // *self.fatty_acid.bound_mut() = bound;
-                }
-            }
-            outer_response.mark_changed();
-        }
-        ui.data_mut(|data| data.insert_temp(self.id_salt, state));
-        outer_response
+        // for (index, (mut offset, mut bound)) in self.fatty_acid.iter().enumerate() {
+        //     ui.horizontal(|ui| {
+        //         let text = match offset {
+        //             Some(Some(index)) => &index.to_string(),
+        //             Some(None) => "?",
+        //             None => "*",
+        //         };
+        //         let delta = (index + 1) as i8;
+        //         ComboBox::from_id_salt(ui.auto_id_with(self.id_salt))
+        //             .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
+        //             .width(ui.spacing().combo_width / 2.0)
+        //             .selected_text(text)
+        //             .show_ui(ui, |ui| {
+        //                 ui.selectable_value(
+        //                     &mut offset,
+        //                     Some(NonZeroI8::new(delta)),
+        //                     delta.to_string(),
+        //                 );
+        //                 ui.selectable_value(&mut offset, Some(None), "?");
+        //                 ui.selectable_value(&mut offset, None, "*");
+        //             });
+        //         let text = Bound::display(bound).to_string();
+        //         ComboBox::from_id_salt(ui.auto_id_with(self.id_salt))
+        //             .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
+        //             .width(ui.spacing().combo_width / 2.0)
+        //             .selected_text(text)
+        //             .show_ui(ui, |ui| {
+        //                 ui.selectable_value(&mut bound, Some(Bound::S), S);
+        //                 ui.selectable_value(&mut bound, Some(Bound::D), D);
+        //                 ui.selectable_value(&mut bound, Some(Bound::DC), DC);
+        //                 ui.selectable_value(&mut bound, Some(Bound::DT), DT);
+        //                 ui.selectable_value(&mut bound, Some(Bound::T), T);
+        //                 ui.selectable_value(&mut bound, Some(Bound::TC), TC);
+        //                 ui.selectable_value(&mut bound, Some(Bound::TT), TT);
+        //                 ui.selectable_value(&mut bound, Some(Bound::U), U);
+        //                 ui.selectable_value(&mut bound, Some(Bound::UC), UC);
+        //                 ui.selectable_value(&mut bound, Some(Bound::UT), UT);
+        //                 ui.selectable_value(&mut bound, None, B);
+        //             });
+        //     });
+        // }
 
         // ui.horizontal(|ui| {
         //     // Carbons
@@ -353,26 +330,13 @@ impl<'a> FattyAcidContent<'a> {
         //         outer_response |= response;
         //     }
         // }
+        ui.data_mut(|data| data.insert_temp(self.id_salt, state));
+        outer_response
     }
 }
 
-/// State
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 struct State {
-    change: Option<Kind>,
-    open: bool,
-}
-
-/// Kind
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-enum Kind {
-    Index(Change),
-    Bound(Change),
-}
-
-/// Change
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-struct Change {
-    index: usize,
-    value: Option<Option<NonZeroI8>>,
+    changed: Option<(usize, Option<Option<NonZeroI8>>)>,
+    is_opened: bool,
 }
