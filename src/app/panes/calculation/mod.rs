@@ -6,7 +6,7 @@ use egui_l20n::ResponseExt as _;
 use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, ERASER, FLOPPY_DISK, GEAR, NOTE_PENCIL, PENCIL, TAG,
 };
-use metadata::{MetaDataFrame, NAME, VERSION, egui::MetadataWidget};
+use metadata::{AUTHORS, DATE, DESCRIPTION, MetaDataFrame, NAME, VERSION, egui::MetadataWidget};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use tracing::error;
@@ -119,7 +119,17 @@ impl Pane {
     fn body_content_meta(&mut self, ui: &mut Ui) {
         ui.style_mut().visuals.collapsing_header_frame = true;
         ui.collapsing(RichText::new(format!("{TAG} Metadata")).heading(), |ui| {
-            MetadataWidget::new(&mut self.frame.meta).show(ui);
+            println!("NAME: {:?}", self.frame.meta.get(NAME));
+            println!("DESCRIPTION: {:?}", self.frame.meta.get(DESCRIPTION));
+            println!("AUTHORS: {:?}", self.frame.meta.get(AUTHORS));
+            println!("VERSION: {:?}", self.frame.meta.get(VERSION));
+            println!("DATE: {:?}", self.frame.meta.get(DATE));
+            // self.frame.meta.insert(DESCRIPTION.into(), "".into());
+            // self.frame.meta.insert(VERSION.into(), "".into());
+            // self.frame.meta.insert(DATE.into(), "".into());
+            MetadataWidget::new(&mut self.frame.meta)
+                .with_writable(true)
+                .show(ui);
         });
     }
 

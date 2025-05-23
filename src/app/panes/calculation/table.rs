@@ -101,7 +101,6 @@ impl TableView<'_> {
                 },
                 HeaderRow::new(height),
             ])
-            .auto_size_mode(AutoSizeMode::OnParentResize)
             .show(ui, self);
         if self.state.add_table_row {
             self.source.add_row().unwrap();
@@ -600,6 +599,7 @@ fn update_fatty_acid(
             .enumerate()
             .map(|(index, fatty_acid)| {
                 Ok(if index == row {
+                    println!("value: {value:?}");
                     match value.clone() {
                         Some(value) => Some(value.into_struct(PlSmallStr::EMPTY)?.into_series()),
                         None => None,
