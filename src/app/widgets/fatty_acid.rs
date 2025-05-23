@@ -259,24 +259,24 @@ impl<'a> FattyAcidContent<'a> {
                     *self.fatty_acid.index_mut() = index;
                 }
                 Kind::Bound(change) => {
-                    // let categorical = self
-                    //     .fatty_acid
-                    //     .bound()
-                    //     .iter()
-                    //     .enumerate()
-                    //     .map(|(index, value)| {
-                    //         if index == change.index {
-                    //             Some(match change.value? {
-                    //                 Some(value) => value.get(),
-                    //                 None => 0,
-                    //             })
-                    //         } else {
-                    //             value
-                    //         }
-                    //     })
-                    //     .collect::<CategoricalChunked>()
-                    //     .with_name(INDEX.into());
-                    // let bound = BoundChunked::new(categorical);
+                    let categorical = self
+                        .fatty_acid
+                        .bound()
+                        .iter()
+                        .enumerate()
+                        .map(|(index, value)| {
+                            if index == change.index {
+                                Some(match change.value? {
+                                    Some(value) => value.get(),
+                                    None => 0,
+                                })
+                            } else {
+                                value
+                            }
+                        })
+                        .collect::<CategoricalChunked>()
+                        .with_name(INDEX.into());
+                    let bound = BoundChunked::new(categorical);
                     // *self.fatty_acid.bound_mut() = bound;
                 }
             }
@@ -366,13 +366,13 @@ struct State {
 /// Kind
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 enum Kind {
-    Index(Change),
-    Bound(Change),
+    Index(Change<Option<Option<NonZeroI8>>>),
+    Bound(Change<Bound>),
 }
 
 /// Change
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-struct Change {
+struct Change<T> {
     index: usize,
-    value: Option<Option<NonZeroI8>>,
+    value: T,
 }
