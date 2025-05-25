@@ -1,9 +1,9 @@
 use crate::{
-    app::panes::calculation::settings::Settings, presets::_10_1021_jf903048p::MATURE_MILK,
+    app::panes::calculation::settings::Settings, presets::_10_1021_jf903048p::MATURE_MILK_FAT,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use polars::prelude::*;
-use polars_ext::{prelude::ExprExt, series::column};
+use polars_ext::{ExprExt, column};
 use std::{
     hash::{Hash, Hasher},
     iter::zip,
@@ -21,7 +21,7 @@ pub(crate) struct Computer;
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
         let mut lazy_frame = key.data_frame.clone().lazy();
-        let other = MATURE_MILK.data.clone().lazy().select([
+        let other = MATURE_MILK_FAT.data.clone().lazy().select([
             col("FattyAcid").hash(),
             col("FattyAcid"),
             col("StereospecificNumber123").alias("Target123"),
@@ -96,6 +96,7 @@ impl Computer {
                 col("F"),
             ]);
         }
+        lazy_frame = lazy_frame.with_row_index("Index", None);
         lazy_frame.collect()
     }
 }

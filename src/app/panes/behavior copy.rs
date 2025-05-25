@@ -26,11 +26,13 @@ impl egui_tiles::Behavior<Pane> for Behavior {
                                 ui.text_style_height(&TextStyle::Heading) + 4.0 * MARGIN.y,
                             );
                             ui.visuals_mut().button_frame = false;
+                            let response = pane.header(ui);
+                            ui.separator();
                             if ui.button(RichText::new(X).heading()).clicked() {
                                 self.close = Some(tile_id);
                             }
                             ui.separator();
-                            pane.header(ui)
+                            response
                         })
                         .inner
                 })

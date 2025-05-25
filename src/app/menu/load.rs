@@ -8,7 +8,6 @@ use egui_phosphor::regular::DATABASE;
 use egui_tiles::Tree;
 use egui_tiles_ext::{TreeExt, VERTICAL};
 use metadata::MetaDataFrame;
-use ron::{extensions::Extensions, ser::PrettyConfig};
 use std::fs::File;
 
 /// Load
@@ -24,8 +23,9 @@ impl<'a> Load<'a> {
 impl Load<'_> {
     fn presets(&mut self, ui: &mut Ui) {
         macro preset($frame:path) {
+            let title = $frame.meta.format(" ");
             if ui
-                .button(RichText::new(format!("{DATABASE} {}", $frame.meta.title())).heading())
+                .button(RichText::new(format!("{DATABASE} {title}")).heading())
                 .clicked()
             {
                 self.tree.insert_pane::<VERTICAL>(Pane::new($frame.clone()));
@@ -101,19 +101,20 @@ fn doi_separator(doi: &str) -> impl Fn(&mut Ui) -> Response {
 
 fn ipc(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
     let file = File::create(name)?;
-    MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write(file)?;
+    MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write_ipc(file)?;
     Ok(())
 }
 
-fn ron(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
-    let file = File::create(name)?;
-    ron::ser::to_writer_pretty(
-        file,
-        &frame.data,
-        PrettyConfig::default().extensions(Extensions::IMPLICIT_SOME),
-    )?;
-    Ok(())
-}
+// fn ron(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
+//     let file = File::create(name)?;
+//     ron::ser::to_writer_pretty(
+//         file,
+//         &frame.data,
+//         PrettyConfig::default().extensions(Extensions::IMPLICIT_SOME),
+//     )?;
+//     Ok(())
+// }
+
 // fn json(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
 //     // let contents = ron::ser::to_string_pretty(
 //     //     &frame.data,

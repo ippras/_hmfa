@@ -1,29 +1,25 @@
-use super::{ID_SOURCE, Settings, State};
-use crate::app::{
-    MARGIN,
-    computers::{CalculationComputed, CalculationKey},
-    widgets::{FloatWidget, new_fatty_acid::FattyAcidWidget},
+use super::{super::MARGIN, ID_SOURCE, Settings, State};
+use crate::{
+    app::{
+        computers::{CalculationComputed, CalculationKey},
+        widgets::{FattyAcidWidget, FloatWidget},
+    },
+    utils::UiExt as _,
 };
-use egui::{Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui};
+use egui::{Context, Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui};
 use egui_phosphor::regular::{MINUS, PLUS};
-use egui_table::{
-    AutoSizeMode, CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState,
-};
-use lipid::fatty_acid::{
-    FattyAcid,
-    polars::{DataFrameExt as _, SeriesExt as _},
-};
-use polars::{chunked_array::builder::AnonymousOwnedListBuilder, prelude::*};
-use re_ui::UiExt as _;
+use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
+use lipid::prelude::*;
+use polars::prelude::*;
+use polars_ext::prelude::DataFrameExt as _;
 use std::ops::Range;
+use tracing::instrument;
 
 const ID: Range<usize> = 0..2;
 const EXPERIMENTAL: Range<usize> = ID.end..ID.end + 2;
 const CALCULATED: Range<usize> = EXPERIMENTAL.end..EXPERIMENTAL.end + 11;
 const LEN: usize = CALCULATED.end;
-
 const TOP: &[Range<usize>] = &[ID, EXPERIMENTAL, CALCULATED];
-
 const MIDDLE: &[Range<usize>] = &[
     id::INDEX,
     id::FA,
@@ -78,7 +74,7 @@ impl TableView<'_> {
             TableState::reset(ui.ctx(), id);
             self.state.reset_table_state = false;
         }
-        let height = ui.text_style_height(&TextStyle::Heading);
+        let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
         let num_rows = self.source.height() as u64 + 1;
         let num_columns = LEN;
         Table::new()
@@ -100,14 +96,13 @@ impl TableView<'_> {
                 },
                 HeaderRow::new(height),
             ])
-            .auto_size_mode(AutoSizeMode::OnParentResize)
             .show(ui, self);
         if self.state.add_table_row {
-            self.add_row().unwrap();
+            self.source.add_row().unwrap();
             self.state.add_table_row = false;
         }
         if let Some(index) = self.state.delete_table_row {
-            self.delete_row(index).unwrap();
+            self.source.delete_row(index).unwrap();
             self.state.delete_table_row = None;
         }
     }
@@ -169,6 +164,7 @@ impl TableView<'_> {
         };
     }
 
+    #[instrument(skip(self, ui), err)]
     fn cell_content_ui(
         &mut self,
         ui: &mut Ui,
@@ -176,10 +172,10 @@ impl TableView<'_> {
         column: Range<usize>,
     ) -> PolarsResult<()> {
         if !self.source.is_empty() {
-            if row == self.source.height() {
-                self.footer_cell_content_ui(ui, column)?;
-            } else {
+            if row < self.source.height() {
                 self.body_cell_content_ui(ui, row, column)?;
+            } else {
+                self.footer_cell_content_ui(ui, column)?;
             }
         }
         Ok(())
@@ -198,18 +194,17 @@ impl TableView<'_> {
                         self.state.delete_table_row = Some(row);
                     }
                 }
-                let indices = self.target["Index"].u32()?;
-                let index = indices.get(row).unwrap();
-                ui.label(index.to_string());
+                ui.label(row.to_string());
             }
             (row, &id::FA) => {
-                let inner_response = FattyAcidWidget::new(|| self.source.fatty_acid().get(row))
-                    .editable(self.settings.editable)
-                    .hover()
-                    .ui(ui)?;
-                if let Some(value) = inner_response.inner {
+                let inner_response =
+                    FattyAcidWidget::new(self.source.try_fatty_acid_list()?.get(row))
+                        .editable(self.settings.editable)
+                        .hover()
+                        .show(ui);
+                if inner_response.response.changed() {
                     self.source
-                        .try_apply("FattyAcid", change_fatty_acid(row, &value))?;
+                        .try_apply("FattyAcid", update_fatty_acid(row, inner_response.inner))?;
                 }
             }
             (row, &experimental::SN123) => {
@@ -224,41 +219,43 @@ impl TableView<'_> {
                     calculated::sn2::A => "StereospecificNumber2",
                     _ => unreachable!(),
                 };
-                self.ro(ui, || {
-                    Ok(self.target[name]
+                self.ro(
+                    ui,
+                    self.target[name]
                         .struct_()?
                         .field_by_name("Data")?
                         .struct_()?
                         .field_by_name("A")?
                         .f64()?
-                        .get(row))
-                })?
+                        .get(row),
+                )?
                 .on_hover_ui(|ui| {
-                    ui.horizontal(|ui| {
+                    ui.horizontal(|ui| -> PolarsResult<()> {
                         ui.spacing_mut().item_spacing.x = 0.0;
                         ui.label("[");
-                        FloatWidget::new(|| {
-                            Ok(self.target[name]
+                        FloatWidget::new(
+                            self.target[name]
                                 .struct_()?
                                 .field_by_name("Meta")?
                                 .struct_()?
                                 .field_by_name("Min")?
                                 .f64()?
-                                .get(row))
-                        })
-                        .ui(ui);
+                                .get(row),
+                        )
+                        .show(ui);
                         ui.label(",");
-                        FloatWidget::new(|| {
-                            Ok(self.target[name]
+                        FloatWidget::new(
+                            self.target[name]
                                 .struct_()?
                                 .field_by_name("Meta")?
                                 .struct_()?
                                 .field_by_name("Max")?
                                 .f64()?
-                                .get(row))
-                        })
-                        .ui(ui);
+                                .get(row),
+                        )
+                        .show(ui);
                         ui.label("]");
+                        Ok(())
                     });
                 });
             }
@@ -268,15 +265,16 @@ impl TableView<'_> {
                     calculated::sn2::B => "StereospecificNumber2",
                     _ => unreachable!(),
                 };
-                self.ro(ui, || {
-                    Ok(self.target[name]
+                self.ro(
+                    ui,
+                    self.target[name]
                         .struct_()?
                         .field_by_name("Data")?
                         .struct_()?
                         .field_by_name("B")?
                         .f64()?
-                        .get(row))
-                })?;
+                        .get(row),
+                )?;
             }
             (row, &calculated::sn123::C | &calculated::sn2::C) => {
                 let name = match column {
@@ -298,15 +296,16 @@ impl TableView<'_> {
                     .field_by_name("B")?
                     .get(row)?
                     .to_string();
-                self.ro(ui, || {
-                    Ok(self.target[name]
+                self.ro(
+                    ui,
+                    self.target[name]
                         .struct_()?
                         .field_by_name("Data")?
                         .struct_()?
                         .field_by_name("C")?
                         .f64()?
-                        .get(row))
-                })?
+                        .get(row),
+                )?
                 .on_hover_ui(|ui| {
                     ui.markdown_ui(&format!("|{a} - {b}| / {a}"));
                 });
@@ -324,7 +323,7 @@ impl TableView<'_> {
                     .field_by_name("D")?
                     .f64()?
                     .get(row);
-                let response = self.ro(ui, || Ok(d))?;
+                let response = self.ro(ui, d)?;
                 if let Ok((Some(d), Some(sum))) = (|| -> PolarsResult<_> {
                     let sum = self.target[name]
                         .struct_()?
@@ -371,21 +370,22 @@ impl TableView<'_> {
                     .field_by_name("Sum")?
                     .get(row)?
                     .to_string();
-                self.ro(ui, || {
-                    Ok(self.target[name]
+                self.ro(
+                    ui,
+                    self.target[name]
                         .struct_()?
                         .field_by_name("Data")?
                         .struct_()?
                         .field_by_name("E")?
                         .f64()?
-                        .get(row))
-                })?
+                        .get(row),
+                )?
                 .on_hover_ui(|ui| {
                     ui.markdown_ui(&format!("50 * {c} * {d} / {sum}"));
                 });
             }
             (row, &calculated::F) => {
-                self.ro(ui, || Ok(self.target["F"].f64()?.get(row)))?;
+                self.ro(ui, self.target["F"].f64()?.get(row))?;
             }
             _ => {}
         }
@@ -402,18 +402,18 @@ impl TableView<'_> {
                 }
             }
             experimental::SN123 => {
-                FloatWidget::new(|| Ok(self.source["StereospecificNumber123"].f64()?.sum()))
+                FloatWidget::new(self.source["StereospecificNumber123"].f64()?.sum())
                     .precision(Some(self.settings.precision))
                     .hover()
-                    .ui(ui)
+                    .show(ui)
                     .response
                     .on_hover_text("∑TAG");
             }
             experimental::SN2 => {
-                FloatWidget::new(|| Ok(self.source["StereospecificNumber2"].f64()?.sum()))
+                FloatWidget::new(self.source["StereospecificNumber2"].f64()?.sum())
                     .precision(Some(self.settings.precision))
                     .hover()
-                    .ui(ui)
+                    .show(ui)
                     .response
                     .on_hover_text("∑MAG");
             }
@@ -423,60 +423,60 @@ impl TableView<'_> {
                     calculated::sn2::D => "StereospecificNumber2",
                     _ => unreachable!(),
                 };
-                FloatWidget::new(|| {
-                    Ok(self.target[name]
+                FloatWidget::new(
+                    self.target[name]
                         .struct_()?
                         .field_by_name("Meta")?
                         .struct_()?
                         .field_by_name("Sum")?
                         .f64()?
-                        .first())
-                })
+                        .first(),
+                )
                 .precision(Some(self.settings.precision))
                 .hover()
-                .ui(ui)
+                .show(ui)
                 .response
                 .on_hover_text("∑D");
             }
             calculated::sn123::E => {
-                FloatWidget::new(|| {
-                    Ok(self.target["StereospecificNumber123"]
+                FloatWidget::new(
+                    self.target["StereospecificNumber123"]
                         .struct_()?
                         .field_by_name("Data")?
                         .struct_()?
                         .field_by_name("E")?
                         .f64()?
                         .sum()
-                        .map(|e| 50.0 - e))
-                })
+                        .map(|e| 50.0 - e),
+                )
                 .precision(Some(self.settings.precision))
                 .hover()
-                .ui(ui)
+                .show(ui)
                 .response
                 .on_hover_text("50 - ∑E");
             }
             calculated::sn2::E => {
-                FloatWidget::new(|| {
-                    Ok(self.target["StereospecificNumber2"]
+                FloatWidget::new(
+                    self.target["StereospecificNumber2"]
                         .struct_()?
                         .field_by_name("Data")?
                         .struct_()?
                         .field_by_name("E")?
                         .f64()?
                         .sum()
-                        .map(|e| 50.0 - e))
-                })
+                        .map(|e| 50.0 - e),
+                )
                 .precision(Some(self.settings.precision))
                 .hover()
-                .ui(ui)
+                .show(ui)
                 .response
                 .on_hover_text("50 - ∑E");
             }
             calculated::F => {
-                FloatWidget::new(|| Ok(self.target["F"].f64()?.sum().map(|f| 100.0 - f)))
+                FloatWidget::new(self.target["F"].f64()?.sum().map(|f| 100.0 - f))
                     .precision(Some(self.settings.precision))
                     .hover()
-                    .ui(ui)
+                    .show(ui)
                     .response
                     .on_hover_text("100 - ∑F");
             }
@@ -486,86 +486,31 @@ impl TableView<'_> {
     }
 
     fn rw(&mut self, ui: &mut Ui, row: usize, column: &str) -> PolarsResult<Response> {
-        let inner_response = FloatWidget::new(|| Ok(self.source[column].f64()?.get(row)))
+        let inner_response = FloatWidget::new(self.source[column].f64()?.get(row))
             .editable(self.settings.editable)
             .precision(Some(self.settings.precision))
             .hover()
-            .ui(ui);
-        if let Some(value) = inner_response.inner {
+            .show(ui);
+        if inner_response.response.changed() {
             self.source
-                .try_apply(column, change_experimental(row, value))?;
+                .try_apply(column, update_float(row, inner_response.inner))?;
         }
         Ok(inner_response.response)
     }
 
-    fn ro(&self, ui: &mut Ui, f: impl Fn() -> PolarsResult<Option<f64>>) -> PolarsResult<Response> {
-        Ok(FloatWidget::new(f)
+    fn ro(&self, ui: &mut Ui, value: Option<f64>) -> PolarsResult<Response> {
+        Ok(FloatWidget::new(value)
             .precision(Some(self.settings.precision))
             .hover()
-            .ui(ui)
+            .show(ui)
             .response)
-    }
-
-    fn add_row(&mut self) -> PolarsResult<()> {
-        println!("self.source: {}", self.source);
-        *self.source = self.source.vstack(&df! {
-            "FattyAcid" => df! {
-                "Carbons" => &[0u8],
-                "Unsaturated" => &[
-                    df! {
-                        "Index" => Series::new_empty(PlSmallStr::EMPTY, &DataType::UInt8),
-                        "Isomerism" => Series::new_empty(PlSmallStr::EMPTY, &DataType::Int8),
-                        "Unsaturation" => Series::new_empty(PlSmallStr::EMPTY, &DataType::UInt8),
-                    }?.into_struct(PlSmallStr::EMPTY).into_series(),
-                ],
-            }?.into_struct(PlSmallStr::EMPTY),
-            "StereospecificNumber123" => [0f64],
-            "StereospecificNumber2" => [0f64],
-        }?)?;
-        self.source.as_single_chunk_par();
-        // *self.source = concat(
-        //     [
-        //         self.source.clone().lazy(),
-        //         df! {
-        //             "FattyAcid" => df! {
-        //                 "Carbons" => &[0u8],
-        //                 "Unsaturated" => &[
-        //                     df! {
-        //                         "Index" => Series::new_empty(PlSmallStr::EMPTY, &DataType::UInt8),
-        //                         "Isomerism" => Series::new_empty(PlSmallStr::EMPTY, &DataType::Int8),
-        //                         "Unsaturation" => Series::new_empty(PlSmallStr::EMPTY, &DataType::UInt8),
-        //                     }?.into_struct(PlSmallStr::EMPTY).into_series(),
-        //                 ],
-        //             }?.into_struct(PlSmallStr::EMPTY),
-        //             "StereospecificNumber123" => [0f64],
-        //             "StereospecificNumber12" => [0f64],
-        //         }?
-        //         .lazy(),
-        //     ],
-        //     UnionArgs {
-        //         rechunk: true,
-        //         diagonal: true,
-        //         ..Default::default()
-        //     },
-        // )?
-        // .collect()?;
-        Ok(())
-    }
-
-    fn delete_row(&mut self, row: usize) -> PolarsResult<()> {
-        *self.source = self
-            .source
-            .slice(0, row)
-            .vstack(&self.source.slice((row + 1) as _, usize::MAX))?;
-        self.source.as_single_chunk_par();
-        Ok(())
     }
 }
 
 impl TableDelegate for TableView<'_> {
     fn header_cell_ui(&mut self, ui: &mut Ui, cell: &HeaderCellInfo) {
-        Frame::none()
-            .inner_margin(Margin::symmetric(MARGIN.x, MARGIN.y))
+        Frame::new()
+            .inner_margin(Margin::from(MARGIN))
             .show(ui, |ui| {
                 self.header_cell_content_ui(ui, cell.row_nr, cell.col_range.clone())
             });
@@ -576,107 +521,130 @@ impl TableDelegate for TableView<'_> {
             ui.painter()
                 .rect_filled(ui.max_rect(), 0.0, ui.visuals().faint_bg_color);
         }
-        Frame::none()
-            .inner_margin(Margin::symmetric(MARGIN.x, MARGIN.y))
+        Frame::new()
+            .inner_margin(Margin::from(MARGIN))
             .show(ui, |ui| {
                 self.cell_content_ui(ui, cell.row_nr as _, cell.col_nr..cell.col_nr + 1)
                     .unwrap()
             });
     }
-}
 
-fn change_fatty_acid(
-    row: usize,
-    new: &FattyAcid,
-) -> impl FnMut(&Series) -> PolarsResult<Series> + '_ {
-    move |series| {
-        let fatty_acid_series = series.fatty_acid();
-        let mut carbons = PrimitiveChunkedBuilder::<UInt8Type>::new(
-            fatty_acid_series.carbons.name().clone(),
-            fatty_acid_series.len(),
-        );
-        let mut unsaturated = AnonymousOwnedListBuilder::new(
-            fatty_acid_series.unsaturated.name().clone(),
-            fatty_acid_series.len(),
-            fatty_acid_series.unsaturated.dtype().inner_dtype().cloned(),
-        );
-        for index in 0..fatty_acid_series.len() {
-            let mut fatty_acid = fatty_acid_series.get(index)?;
-            if index == row {
-                fatty_acid = Some(new.clone());
-            }
-            let fatty_acid = fatty_acid.as_ref();
-            // Carbons
-            carbons.append_option(fatty_acid.map(|fatty_acid| fatty_acid.carbons));
-            // Unsaturated
-            if let Some(fatty_acid) = fatty_acid {
-                // let mut fields = Vec::with_capacity(fatty_acid.unsaturated.len());
-                // if let Some(unsaturated_series) = fatty_acid_series.unsaturated(index)? {
-                //     fields.push(unsaturated_series.index);
-                //     fields.push(unsaturated_series.isomerism);
-                //     fields.push(unsaturated_series.unsaturation);
-                // }
-                // unsaturated.append_series(
-                //     &StructChunked::from_series(
-                //         PlSmallStr::EMPTY,
-                //         fatty_acid.unsaturated.len(),
-                //         fields.iter(),
-                //     )?
-                //     .into_series(),
-                // )?;
-                let mut index = PrimitiveChunkedBuilder::<UInt8Type>::new(
-                    "Index".into(),
-                    fatty_acid.unsaturated.len(),
-                );
-                let mut isomerism = PrimitiveChunkedBuilder::<Int8Type>::new(
-                    "Isomerism".into(),
-                    fatty_acid.unsaturated.len(),
-                );
-                let mut unsaturation = PrimitiveChunkedBuilder::<UInt8Type>::new(
-                    "Unsaturation".into(),
-                    fatty_acid.unsaturated.len(),
-                );
-                for unsaturated in &fatty_acid.unsaturated {
-                    index.append_option(unsaturated.index);
-                    isomerism.append_option(unsaturated.isomerism.map(|isomerism| isomerism as _));
-                    unsaturation.append_option(
-                        unsaturated
-                            .unsaturation
-                            .map(|unsaturation| unsaturation as _),
-                    );
-                }
-                unsaturated.append_series(
-                    &StructChunked::from_series(
-                        PlSmallStr::EMPTY,
-                        fatty_acid.unsaturated.len(),
-                        [
-                            index.finish().into_series(),
-                            isomerism.finish().into_series(),
-                            unsaturation.finish().into_series(),
-                        ]
-                        .iter(),
-                    )?
-                    .into_series(),
-                )?;
-            } else {
-                println!("HERE1");
-                unsaturated.append_opt_series(None)?;
-            }
-        }
-        Ok(StructChunked::from_series(
-            series.name().clone(),
-            fatty_acid_series.len(),
-            [
-                carbons.finish().into_series(),
-                unsaturated.finish().into_series(),
-            ]
-            .iter(),
-        )?
-        .into_series())
+    fn row_top_offset(&self, ctx: &Context, _table_id: Id, row: u64) -> f32 {
+        row as f32 * (ctx.style().spacing.interact_size.y + 2.0 * MARGIN.y)
     }
 }
 
-fn change_experimental(row: usize, new: f64) -> impl FnMut(&Series) -> PolarsResult<Series> {
+fn update_fatty_acid(
+    row: usize,
+    value: Option<FattyAcidChunked>,
+) -> impl FnMut(&Series) -> PolarsResult<Series> + 'static {
+    move |series| {
+        let out = series
+            .fatty_acid_list()
+            .iter()
+            .enumerate()
+            .map(|(index, fatty_acid)| {
+                Ok(if index == row {
+                    println!("value: {value:?}");
+                    match value.clone() {
+                        Some(value) => Some(value.into_struct(PlSmallStr::EMPTY)?.into_series()),
+                        None => None,
+                    }
+                } else {
+                    Some(fatty_acid.into_struct(PlSmallStr::EMPTY)?.into_series())
+                })
+            })
+            .collect::<PolarsResult<ListChunked>>()?;
+        println!("out: {out:?}");
+        Ok(out.into_series())
+        // unimplemented!();
+        // let list = series.fatty_acid_list().as_list();
+        // println!("fatty_acid_series: {list:?}");
+        // let mut builder = AnonymousOwnedListBuilder::new(
+        //     list.name().clone(),
+        //     list.len(),
+        //     list.dtype().inner_dtype().cloned(),
+        // );
+        // // let value = value.map(|value| value.into_struct(PlSmallStr::EMPTY)?.into_series());
+        // for index in 0..list.len() {
+        //     if index == row {
+        //         let value = match value.clone() {
+        //             Some(value) => Some(value.into_struct(PlSmallStr::EMPTY)?.into_series()),
+        //             None => None,
+        //         };
+        //         builder.append_opt_series(value.as_ref())?;
+        //     } else {
+        //         builder.append_opt_series(list.get_as_series(index).as_ref());
+        //     }
+        // }
+        // Ok(builder
+        //     .finish()
+        //     // .cast(&DataType::List(FATTY_ACID_DATA_TYPE.clone().boxed()))?
+        //     .into_series())
+
+        // unimplemented!()
+        // for index in 0..fatty_acid_series.len() {
+        //     let mut fatty_acid = fatty_acid_series.get(index)?;
+        //     if index == row {
+        //         fatty_acid = value.clone();
+        //     }
+        //     let fatty_acid = fatty_acid.as_ref();
+        //     // Carbons
+        //     carbons.append_option(fatty_acid.map(|fatty_acid| fatty_acid.carbons));
+        //     // Unsaturated
+        //     if let Some(fatty_acid) = fatty_acid {
+        //         let mut index = PrimitiveChunkedBuilder::<UInt8Type>::new(
+        //             "Index".into(),
+        //             fatty_acid.unsaturated.len(),
+        //         );
+        //         let mut isomerism = PrimitiveChunkedBuilder::<Int8Type>::new(
+        //             "Isomerism".into(),
+        //             fatty_acid.unsaturated.len(),
+        //         );
+        //         let mut unsaturation = PrimitiveChunkedBuilder::<UInt8Type>::new(
+        //             "Unsaturation".into(),
+        //             fatty_acid.unsaturated.len(),
+        //         );
+        //         for unsaturated in &fatty_acid.unsaturated {
+        //             index.append_option(unsaturated.index);
+        //             isomerism.append_option(unsaturated.isomerism.map(|isomerism| isomerism as _));
+        //             unsaturation.append_option(
+        //                 unsaturated
+        //                     .unsaturation
+        //                     .map(|unsaturation| unsaturation as _),
+        //             );
+        //         }
+        //         unsaturated.append_series(
+        //             &StructChunked::from_series(
+        //                 PlSmallStr::EMPTY,
+        //                 fatty_acid.unsaturated.len(),
+        //                 [
+        //                     index.finish().into_series(),
+        //                     isomerism.finish().into_series(),
+        //                     unsaturation.finish().into_series(),
+        //                 ]
+        //                 .iter(),
+        //             )?
+        //             .into_series(),
+        //         )?;
+        //     } else {
+        //         unsaturated.append_opt_series(None)?;
+        //     }
+        // }
+        // Ok(StructChunked::from_series(
+        //     series.name().clone(),
+        //     fatty_acid_series.len(),
+        //     [
+        //         carbons.finish().into_series(),
+        //         unsaturated.finish().into_series(),
+        //     ]
+        //     .iter(),
+        // )?
+        // .into_series())
+    }
+}
+
+fn update_float(row: usize, new: Option<f64>) -> impl FnMut(&Series) -> PolarsResult<Series> {
     move |series| {
         Ok(series
             .f64()?
@@ -684,7 +652,7 @@ fn change_experimental(row: usize, new: f64) -> impl FnMut(&Series) -> PolarsRes
             .enumerate()
             .map(|(index, mut value)| {
                 if index == row {
-                    value = Some(new);
+                    value = new;
                 }
                 Ok(value)
             })

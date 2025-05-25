@@ -30,8 +30,8 @@ impl About {
                 // ctx.frame_nr()
                 ui.vertical_centered(|ui| {
                     let version = env!("CARGO_PKG_VERSION");
-                    ui.label(format!("HMF {version}"));
-                    ui.label("Human Milk Fat matching");
+                    ui.label(format!("HMFA {version}"));
+                    ui.label("Human Milk Fat Application");
                     ui.label(COPYRIGHT);
                     Label::new("Giorgi Kazakov").sense(Sense::click()).ui(ui);
                     let id = Id::new("counter");

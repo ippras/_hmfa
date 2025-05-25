@@ -3,7 +3,6 @@ use self::{
     panes::{Pane, behavior::Behavior},
     windows::About,
 };
-use crate::localization::{UiExt, localize};
 use eframe::{APP_KEY, CreationContext, Storage, get_value, set_value};
 use egui::{
     Align, Align2, CentralPanel, Color32, Context, FontDefinitions, Frame, Id, LayerId, Layout,
@@ -11,6 +10,7 @@ use egui::{
     warn_if_debug_build,
 };
 use egui_ext::{DroppedFileExt, HoveredFileExt, LabeledSeparator, LightDarkButton};
+use egui_l20n::{ResponseExt as _, UiExt as _};
 use egui_notify::Toasts;
 use egui_phosphor::{
     Variant, add_to_fonts,
@@ -20,11 +20,13 @@ use egui_phosphor::{
     },
 };
 use egui_tiles::{ContainerKind, Tile, Tree};
-use egui_tiles_ext::TilesExt as _;
+use egui_tiles_ext::{TilesExt as _, TreeExt as _, VERTICAL};
+use metadata::MetaDataFrame;
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::BorrowMut,
     fmt::Write,
+    io::Cursor,
     mem::take,
     str,
     sync::mpsc::{Receiver, Sender, channel},
@@ -36,10 +38,6 @@ use tracing::{error, info, trace};
 const MAX_PRECISION: usize = 16;
 
 pub(super) const ICON_SIZE: f32 = 32.0;
-const MARGIN: Vec2 = vec2(4.0, 0.0);
-const NOTIFICATIONS_DURATION: Duration = Duration::from_secs(15);
-
-// const DESCRIPTION: &str = "Positional-species and positional-type composition of TAG from mature fruit arils of the Euonymus section species, mol % of total TAG";
 
 fn custom_style(ctx: &Context) {
     let mut style = (*ctx.style()).clone();
@@ -141,7 +139,7 @@ impl App {
     // Central panel
     fn central_panel(&mut self, ctx: &Context) {
         CentralPanel::default()
-            .frame(Frame::central_panel(&ctx.style()))
+            .frame(Frame::central_panel(&ctx.style()).inner_margin(0))
             .show(ctx, |ui| {
                 let mut behavior = Behavior { close: None };
                 self.tree.ui(&mut behavior, ui);
@@ -162,7 +160,7 @@ impl App {
                     // Reset
                     if ui
                         .button(RichText::new(TRASH).size(ICON_SIZE))
-                        .on_hover_text(localize!("reset_application"))
+                        .on_hover_localized("reset_application")
                         .clicked()
                     {
                         *self = Default::default();
@@ -171,7 +169,7 @@ impl App {
                     ui.separator();
                     if ui
                         .button(RichText::new(ARROWS_CLOCKWISE).size(ICON_SIZE))
-                        .on_hover_text(localize!("reset_gui"))
+                        .on_hover_localized("reset_gui")
                         .clicked()
                     {
                         ui.memory_mut(|memory| {
@@ -182,7 +180,7 @@ impl App {
                     ui.separator();
                     if ui
                         .button(RichText::new(SQUARE_SPLIT_VERTICAL).size(ICON_SIZE))
-                        .on_hover_text(localize!("vertical"))
+                        .on_hover_localized("vertical")
                         .clicked()
                     {
                         if let Some(id) = self.tree.root {
@@ -193,7 +191,7 @@ impl App {
                     }
                     if ui
                         .button(RichText::new(SQUARE_SPLIT_HORIZONTAL).size(ICON_SIZE))
-                        .on_hover_text(localize!("horizontal"))
+                        .on_hover_localized("horizontal")
                         .clicked()
                     {
                         if let Some(id) = self.tree.root {
@@ -204,7 +202,7 @@ impl App {
                     }
                     if ui
                         .button(RichText::new(GRID_FOUR).size(ICON_SIZE))
-                        .on_hover_text(localize!("grid"))
+                        .on_hover_localized("grid")
                         .clicked()
                     {
                         if let Some(id) = self.tree.root {
@@ -215,7 +213,7 @@ impl App {
                     }
                     if ui
                         .button(RichText::new(TABS).size(ICON_SIZE))
-                        .on_hover_text(localize!("tabs"))
+                        .on_hover_localized("tabs")
                         .clicked()
                     {
                         if let Some(id) = self.tree.root {
@@ -229,7 +227,7 @@ impl App {
                     let mut resizable = true;
                     if ui
                         .button(RichText::new(ARROWS_HORIZONTAL).size(ICON_SIZE))
-                        .on_hover_text(localize!("resize"))
+                        .on_hover_localized("resize")
                         .clicked()
                     {
                         let mut panes = self.tree.tiles.panes_mut().peekable();
@@ -244,7 +242,7 @@ impl App {
                     let mut editable = true;
                     if ui
                         .button(RichText::new(PENCIL).size(ICON_SIZE))
-                        .on_hover_text(localize!("edit"))
+                        .on_hover_localized("edit")
                         .clicked()
                     {
                         let mut panes = self.tree.tiles.panes_mut().peekable();
@@ -260,7 +258,8 @@ impl App {
                     ui.add(Load::new(&mut self.tree));
                     // Create
                     if ui.button(RichText::new(PLUS).size(ICON_SIZE)).clicked() {
-                        // self.tree.insert_pane::<VERTICAL>(Pane::new());
+                        self.tree
+                            .insert_pane::<VERTICAL>(Pane::new(Default::default()));
                     }
                     ui.separator();
                     // About
@@ -275,7 +274,7 @@ impl App {
                         }
                         ui.separator();
                         // Locale
-                        ui.locale_button().on_hover_text(localize!("language"));
+                        ui.locale_button().on_hover_localized("language");
                     });
                 });
             });
@@ -329,117 +328,31 @@ impl App {
             info!(?dropped_files);
             for dropped in dropped_files {
                 trace!(?dropped);
-                let content = match dropped.content() {
-                    Ok(content) => content,
+                let bytes = match dropped.bytes() {
+                    Ok(bytes) => bytes,
                     Err(error) => {
                         error!(%error);
-                        self.toasts
-                            .error(format!("{}: {error}", dropped.display()))
-                            .closable(true)
-                            .duration(Some(NOTIFICATIONS_DURATION));
                         continue;
                     }
                 };
-                trace!(content);
-                let name = dropped.name();
-                self.channel
-                    .0
-                    .send((
-                        name.strip_suffix(".ron")
-                            .and_then(|name| name.strip_suffix(".hmf"))
-                            .unwrap_or(name)
-                            .to_owned(),
-                        content,
-                    ))
-                    .ok();
+                trace!(?bytes);
+                let mut reader = Cursor::new(bytes);
+                match MetaDataFrame::read_ipc(&mut reader) {
+                    Ok(frame) => {
+                        trace!(?frame);
+                        self.tree.insert_pane::<VERTICAL>(Pane::new(frame));
+                    }
+                    Err(error) => error!(%error),
+                };
             }
         }
     }
-
-    // fn paste(&mut self, ctx: &Context) {
-    //     if !ctx.memory(|memory| memory.focused().is_some()) {
-    //         ctx.input(|input| {
-    //             for event in &input.raw.events {
-    //                 if let Event::Paste(paste) = event {
-    //                     if let Err(error) = self.parse(paste) {
-    //                         error!(?error);
-    //                         self.toasts
-    //                             .error(error.to_string().chars().take(64).collect::<String>())
-    //                             .set_duration(Some(Duration::from_secs(5)))
-    //                             .set_closable(true);
-    //                     }
-    //                 }
-    //             }
-    //         });
-    //     }
-    // }
-
-    // fn parse(&mut self, paste: &str) -> Result<()> {
-    //     use crate::parsers::whitespace::Parser;
-    //     let parsed = Parser::parse(paste)?;
-    //     debug!(?parsed);
-    //     for parsed in parsed {
-    //         // self.docks.central.tabs.input.add(match parsed {
-    //         //     Parsed::All(label, (c, n), tag, dag, mag) => FattyAcid {
-    //         //         label,
-    //         //         formula: ether!(c as usize, n as usize),
-    //         //         values: [tag, dag, mag],
-    //         //     },
-    //         //     // Parsed::String(label) => Row { label, ..default() },
-    //         //     // Parsed::Integers(_) => Row { label, ..default() },
-    //         //     // Parsed::Float(tag) => Row { label, ..default() },
-    //         //     _ => unimplemented!(),
-    //         // })?;
-    //         // self.config.push_row(Row {
-    //         //     acylglycerols,
-    //         //     label:  parsed.,
-    //         //     ether: todo!(),
-    //         //     // ..default()
-    //         // })?;
-    //     }
-    //     // let mut rows = Vec::new();
-    //     // for row in paste.split('\n') {
-    //     //     let mut columns = [0.0; COUNT];
-    //     //     for (j, column) in row.split('\t').enumerate() {
-    //     //         ensure!(j < COUNT, "Invalid shape, columns: {COUNT} {j}");
-    //     //         columns[j] = column.replace(',', ".").parse()?;
-    //     //     }
-    //     //     rows.push(columns);
-    //     // }
-    //     // for acylglycerols in rows {
-    //     //     self.config.push_row(Row {
-    //     //         acylglycerol: acylglycerols,
-    //     //         ..default()
-    //     //     })?;
-    //     // }
-    //     Ok(())
-    // }
-
-    // fn export(&self) -> Result<(), impl Debug> {
-    //     let content = to_string(&TomlParsed {
-    //         name: self.context.state.entry().meta.name.clone(),
-    //         fatty_acids: self.context.state.entry().fatty_acids(),
-    //     })
-    //     .unwrap();
-    //     self.file_dialog
-    //         .save(
-    //             &format!("{}.toml", self.context.state.entry().meta.name),
-    //             content,
-    //         )
-    //         .unwrap();
-    //     Ok::<_, ()>(())
-    // }
-
-    // fn import(&mut self) -> Result<(), impl Debug> {
-    //     self.file_dialog.load()
-    // }
 }
 
 impl eframe::App for App {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn Storage) {
         set_value(storage, APP_KEY, self);
-        // set_value(storage, APP_KEY, &Self::default());
     }
 
     /// Called each time the UI needs repainting, which may be many times per
