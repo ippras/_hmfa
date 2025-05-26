@@ -1,6 +1,6 @@
 [package]
 name = "hmfa"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Giorgi Vladimirovich Kazakov", "Roman Alexandrovich Sidorov"]
 edition = "2024"
 
@@ -29,10 +29,7 @@ lipid = { git = "https://github.com/ippras/lipid", branch = "double", features =
     "serde",
 ] }
 log = "0.4.27"
-# metadata = { git = "https://github.com/ippras/metadata", branch = "map", features = [
-#     "egui",
-# ] }
-metadata = { path = "D:\\git\\ippras\\metadata", features = [
+metadata = { git = "https://github.com/ippras/metadata", branch = "map", features = [
     "egui",
 ] }
 parking_lot = "0.12.3"
@@ -51,6 +48,8 @@ semver = { version = "1.0.26", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive", "std"] }
 tracing = "0.1.41"
 unic-langid = { version = "0.9.6", features = ["macros"] }
+
+# metadata = { path = "D:\\git\\ippras\\metadata", features = ["egui"] }
 # re_ui = "0.22.1"
 # ron = "0.10.1"
 

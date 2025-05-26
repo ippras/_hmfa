@@ -2,7 +2,7 @@ use crate::{
     app::panes::calculation::settings::Settings, presets::_10_1021_jf903048p::MATURE_MILK,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
-use polars::prelude::*;
+use polars::{lazy::dsl::sum_horizontal, prelude::*};
 use polars_ext::{prelude::ExprExt, series::column};
 use std::{
     hash::{Hash, Hasher},
@@ -78,17 +78,38 @@ impl Computer {
             lazy_frame = lazy_frame.with_columns([as_struct(vec![col("Source2"), col("Target2")])
                 .apply(column(abcdef(&key.settings)), output_type)
                 .alias("StereospecificNumber2")]);
-            lazy_frame = lazy_frame.with_columns([(col("StereospecificNumber123")
-                .struct_()
-                .field_by_name("Data")
-                .struct_()
-                .field_by_name("E")
-                + col("StereospecificNumber2")
-                    .struct_()
-                    .field_by_name("Data")
-                    .struct_()
-                    .field_by_name("E"))
-            .alias("F")]);
+            // lazy_frame = lazy_frame.with_columns([(col("StereospecificNumber123")
+            //     .struct_()
+            //     .field_by_name("Data")
+            //     .struct_()
+            //     .field_by_name("E")
+            //     .fill_null(0)
+            //     + col("StereospecificNumber2")
+            //         .struct_()
+            //         .field_by_name("Data")
+            //         .struct_()
+            //         .field_by_name("E")
+            //         .fill_null(0))
+            // .alias("F")]);
+
+            lazy_frame = lazy_frame.with_column(
+                sum_horizontal(
+                    [
+                        col("StereospecificNumber123")
+                            .struct_()
+                            .field_by_name("Data")
+                            .struct_()
+                            .field_by_name("E"),
+                        col("StereospecificNumber2")
+                            .struct_()
+                            .field_by_name("Data")
+                            .struct_()
+                            .field_by_name("E"),
+                    ],
+                    true,
+                )?
+                .alias("F"),
+            );
             println!("calculate !!!!: {}", lazy_frame.clone().collect().unwrap());
             lazy_frame = lazy_frame.select([
                 col("StereospecificNumber123"),

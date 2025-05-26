@@ -5,3 +5,12 @@ calculation_panel = calculation panel
 composition_panel = composition panel
 configuration_panel = configuration panel
 language = language
+
+precision = Precision
+precision = Precision
+round = Round
+    .hover = Round
+properties = Properties
+    .hover = Properties
+relative = Relative
+    .hover = Relative

@@ -1,4 +1,4 @@
-//! HMF (Human Milk Fat)
+//! HMFA (Human Milk Fatty Acids)
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
@@ -18,7 +18,7 @@ async fn main() -> eframe::Result<()> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
     tracing_subscriber::fmt::init();
     eframe::run_native(
-        "HMF",
+        "HMFA",
         Default::default(),
         Box::new(|context| Ok(Box::new(App::new(context)))),
     )

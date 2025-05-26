@@ -1,5 +1,5 @@
 use egui::{
-    Button, ComboBox, Grid, Id, InnerResponse, PopupCloseBehavior, Response, ScrollArea, Ui,
+    Button, ComboBox, Grid, Id, InnerResponse, Label, PopupCloseBehavior, Response, ScrollArea, Ui,
     Widget, style::Widgets,
 };
 use egui_l20n::ResponseExt as _;
@@ -72,6 +72,7 @@ impl FattyAcidWidget {
                 |ui: &mut Ui| {
                     let response = ui
                         .menu_button(text, |ui| {
+                            ui.set_max_height(ui.spacing().combo_height);
                             let response =
                                 FattyAcidContent::new(self.id_salt, &mut fatty_acid).show(ui);
                             inner = Some(fatty_acid.clone());
@@ -174,7 +175,11 @@ impl<'a> FattyAcidContent<'a> {
         let mut response = ui.response();
         let height = ui.spacing().interact_size.y;
         let width = ui.spacing().combo_width / 2.0;
-        ui.horizontal(|ui| {
+        ui.vertical_centered_justified(|ui| {
+            ui.label(format!("{:#}", self.fatty_acid.display(Default::default())));
+        });
+        ui.separator();
+        Grid::new(ui.auto_id_with(self.id_salt)).show(ui, |ui| {
             if ui.add_sized([width, height], Button::new(MINUS)).clicked() {
                 self.fatty_acid.pop();
                 response.mark_changed();
@@ -288,15 +293,6 @@ impl<'a> FattyAcidContent<'a> {
                     }
                     ui.end_row();
                 }
-                // if ui.add_sized([width, height], Button::new(MINUS)).clicked() {
-                //     self.fatty_acid.pop();
-                //     response.mark_changed();
-                // }
-                // if ui.add_sized([width, height], Button::new(PLUS)).clicked() {
-                //     self.fatty_acid.push().unwrap();
-                //     response.mark_changed();
-                // }
-                // ui.end_row();
             });
         });
         if let Some(kind) = change {
@@ -341,75 +337,6 @@ impl<'a> FattyAcidContent<'a> {
             response.mark_changed();
         }
         response
-
-        // ui.horizontal(|ui| {
-        //     // Carbons
-        //     let mut carbons = self.fatty_acid.carbons();
-        //     let response = ui
-        //         .add(DragValue::new(&mut carbons))
-        //         .on_hover_localized("carbons.hover");
-        //     if response.changed() {
-        //         loop {
-        //             match carbons.cmp(&self.fatty_acid.carbons()) {
-        //                 Ordering::Less => {
-        //                     self.fatty_acid.slice().unsaturated.pop();
-        //                 }
-        //                 Ordering::Equal => break,
-        //                 Ordering::Greater => {
-        //                     self.fatty_acid.unsaturated.push(Unsaturated {
-        //                         index: Some(0),
-        //                         isomerism: Some(Isomerism::Cis),
-        //                         unsaturation: Some(Unsaturation::One),
-        //                     });
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     outer_response |= response;
-        //     // Unsaturated
-        //     let mut unsaturated = self.fatty_acid.unsaturated_count();
-        //     let response = ui
-        //         .add(
-        //             DragValue::new(&mut unsaturated)
-        //                 .range(0..=carbons)
-        //                 .clamp_existing_to_range(true),
-        //         )
-        //         .on_hover_localized("unsaturated.hover");
-        //     if response.changed() {
-        //         loop {
-        //             match unsaturated.cmp(&self.fatty_acid.unsaturated.len()) {
-        //                 Ordering::Less => {
-        //                     self.fatty_acid.unsaturated.pop();
-        //                 }
-        //                 Ordering::Equal => break,
-        //                 Ordering::Greater => {
-        //                     self.fatty_acid.unsaturated.push(Unsaturated {
-        //                         index: Some(0),
-        //                         isomerism: Some(Isomerism::Cis),
-        //                         unsaturation: Some(Unsaturation::One),
-        //                     });
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     // outer_response |= response;
-        //     // if unsaturated == 0 {
-        //     //     ui.disable();
-        //     // }
-        //     let (_, response) = ui.allocate_exact_size(Vec2::splat(10.0), Sense::click());
-        //     collapsing_header::paint_default_icon(ui, openness, &response);
-        //     if response.clicked() {
-        //         state.is_opened ^= true;
-        //     }
-        //     outer_response |= response;
-        // });
-        // if 0.0 < openness {
-        //     ui.separator();
-        //     if !self.fatty_acid.unsaturated.is_empty() {
-        //         let response = UnsaturatedContent::new(self.id_salt, &mut self.fatty_acid).show(ui);
-        //         outer_response |= response;
-        //     }
-        // }
     }
 }
 

@@ -10,18 +10,18 @@ use egui_tiles_ext::{TreeExt, VERTICAL};
 use metadata::MetaDataFrame;
 use std::fs::File;
 
-/// Load
-pub(crate) struct Load<'a> {
+/// Presets
+pub(crate) struct PresetsWidget<'a> {
     tree: &'a mut Tree<Pane>,
 }
-impl<'a> Load<'a> {
+impl<'a> PresetsWidget<'a> {
     pub(crate) fn new(tree: &'a mut Tree<Pane>) -> Self {
         Self { tree }
     }
 }
 
-impl Load<'_> {
-    fn presets(&mut self, ui: &mut Ui) {
+impl PresetsWidget<'_> {
+    fn content(&mut self, ui: &mut Ui) {
         macro preset($frame:path) {
             let title = $frame.meta.format(" ");
             if ui
@@ -77,10 +77,10 @@ impl Load<'_> {
     }
 }
 
-impl Widget for Load<'_> {
+impl Widget for PresetsWidget<'_> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         ui.menu_button(RichText::new(DATABASE).size(ICON_SIZE), |ui| {
-            ScrollArea::new([false, true]).show(ui, |ui| self.presets(ui));
+            ScrollArea::new([false, true]).show(ui, |ui| self.content(ui));
         })
         .response
     }

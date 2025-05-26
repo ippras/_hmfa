@@ -35,9 +35,9 @@ mod sources {
     }
 
     pub(super) const EN: &[&str] = &[
+        source!("/ftl/en/main.ftl"),
         source!("/ftl/en/fatty_acids.ftl"),
         source!("/ftl/en/properties.ftl"),
-        source!("/ftl/en/bars/top.ftl"),
     ];
 
     pub(super) const RU: &[&str] = &[

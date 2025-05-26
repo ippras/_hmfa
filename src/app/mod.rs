@@ -1,15 +1,16 @@
 use self::{
-    menu::load::Load,
     panes::{Pane, behavior::Behavior},
+    widgets::PresetsWidget,
     windows::About,
 };
+use crate::localization::ContextExt as _;
 use eframe::{APP_KEY, CreationContext, Storage, get_value, set_value};
 use egui::{
     Align, Align2, CentralPanel, Color32, Context, FontDefinitions, Frame, Id, LayerId, Layout,
-    Order, RichText, ScrollArea, Sides, TextStyle, TopBottomPanel, Vec2, Visuals, menu::bar, vec2,
+    Order, RichText, ScrollArea, Sides, TextStyle, TopBottomPanel, Visuals, menu::bar,
     warn_if_debug_build,
 };
-use egui_ext::{DroppedFileExt, HoveredFileExt, LabeledSeparator, LightDarkButton};
+use egui_ext::{DroppedFileExt, HoveredFileExt, LightDarkButton};
 use egui_l20n::{ResponseExt as _, UiExt as _};
 use egui_notify::Toasts;
 use egui_phosphor::{
@@ -30,7 +31,6 @@ use std::{
     mem::take,
     str,
     sync::mpsc::{Receiver, Sender, channel},
-    time::Duration,
 };
 use tracing::{error, info, trace};
 
@@ -90,6 +90,7 @@ impl App {
         add_to_fonts(&mut fonts, Variant::Regular);
         cc.egui_ctx.set_fonts(fonts);
         custom_style(&cc.egui_ctx);
+        cc.egui_ctx.set_localizations();
 
         // return Default::default();
         // Load previous app state (if any).
@@ -255,7 +256,7 @@ impl App {
                     };
                     ui.separator();
                     // Load
-                    ui.add(Load::new(&mut self.tree));
+                    ui.add(PresetsWidget::new(&mut self.tree));
                     // Create
                     if ui.button(RichText::new(PLUS).size(ICON_SIZE)).clicked() {
                         self.tree
@@ -368,7 +369,6 @@ impl eframe::App for App {
 }
 
 mod computers;
-mod menu;
 mod panes;
 mod widgets;
 mod windows;

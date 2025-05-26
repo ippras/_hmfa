@@ -53,19 +53,19 @@ impl Settings {
             ui.label(ui.localize("round"));
             Slider::new(&mut self.round, 0..=MAX_PRECISION as _)
                 .ui(ui)
-                .on_hover_localized("round_description");
+                .on_hover_localized("round.hover");
             ui.end_row();
 
             // Properties
             ui.label(ui.localize("properties"));
             ui.checkbox(&mut self.properties, "")
-                .on_hover_localized("properties_description");
+                .on_hover_localized("properties.hover");
             ui.end_row();
 
             // Relative
             ui.label(ui.localize("relative"));
             ui.checkbox(&mut self.relative, "")
-                .on_hover_localized("relative_description");
+                .on_hover_localized("relative.hover");
         });
     }
 }

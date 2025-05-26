@@ -4,7 +4,7 @@ use crate::{
         computers::{CalculationComputed, CalculationKey},
         widgets::{FattyAcidWidget, FloatWidget},
     },
-    utils::UiExt as _,
+    utils::{AnyValueExt as _, UiExt as _},
 };
 use egui::{Context, Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui};
 use egui_phosphor::regular::{MINUS, PLUS};
@@ -32,7 +32,7 @@ const MIDDLE: &[Range<usize>] = &[
 
 const A: &str = "$A \\in [MIN, MAX]$";
 const C: &str = "$C = |A - B| / A$";
-const E: &str = "$E = 50 * (C * D / ∑ D)$";
+const E: &str = "$E = 50 * C * D / ∑ D$";
 
 /// Table view
 pub(super) struct TableView<'a> {
@@ -288,14 +288,14 @@ impl TableView<'_> {
                     .struct_()?
                     .field_by_name("A")?
                     .get(row)?
-                    .to_string();
+                    .display();
                 let b = self.target[name]
                     .struct_()?
                     .field_by_name("Data")?
                     .struct_()?
                     .field_by_name("B")?
                     .get(row)?
-                    .to_string();
+                    .display();
                 self.ro(
                     ui,
                     self.target[name]
@@ -355,21 +355,21 @@ impl TableView<'_> {
                     .struct_()?
                     .field_by_name("C")?
                     .get(row)?
-                    .to_string();
+                    .display();
                 let d = self.target[name]
                     .struct_()?
                     .field_by_name("Data")?
                     .struct_()?
                     .field_by_name("D")?
                     .get(row)?
-                    .to_string();
+                    .display();
                 let sum = self.target[name]
                     .struct_()?
                     .field_by_name("Meta")?
                     .struct_()?
                     .field_by_name("Sum")?
                     .get(row)?
-                    .to_string();
+                    .display();
                 self.ro(
                     ui,
                     self.target[name]

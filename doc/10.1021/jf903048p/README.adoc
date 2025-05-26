@@ -129,7 +129,7 @@
 // Table 1. Fatty Acid Composition and Distribution in Human Mature Milk
 // C16:0 17.30-23.23 52.30 87.86
 
-// Table 2. Fatty Acid Composition in TAG and at the sn-2 Position for HMFSs
+// Table 2. Fatty Acid Composition in TAG and at the sn-2 Position for HMFA
 // C16:0 29.00 31.20 22.30 29.60 71.1 71.90 31.70 9.70
 
 // Table 3. Fatty Acid Composition of Colostrum and Mature Milk Fat (%)

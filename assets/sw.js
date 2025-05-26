@@ -1,9 +1,9 @@
-var cacheName = 'hmf';
+var cacheName = 'hmfa';
 var filesToCache = [
   './',
   './index.html',
-  './hmf.js',
-  './hmf_bg.wasm',
+  './hmfa.js',
+  './hmfa_bg.wasm',
 ];
 
 /* Start the service worker and cache all of the app's content */

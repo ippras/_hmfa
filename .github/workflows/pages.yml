@@ -20,12 +20,12 @@ jobs:
     - name: Build
       run: ./trunk build --release --public-url=$public_url
       env:
-        public_url: "https://ippras.github.io/hmf"
+        public_url: "https://ippras.github.io/hmfa"
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@v4
       with:
         folder: dist
-        repository-name: ippras/hmf
+        repository-name: ippras/hmfa
         single-commit: true
         # ⚠️ Repository permissions:
         # Contents: Read and write
