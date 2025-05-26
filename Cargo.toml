@@ -56,12 +56,15 @@ unic-langid = { version = "0.9.6", features = ["macros"] }
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 poll-promise = { version = "0.3.0", features = ["tokio"] }
-tokio = { version = "1.45.1", features = ["full"] }
+tokio = { version = "1.45.0", features = ["full"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 
 # web
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
+getrandom = { version = "0.3.0", default-features = false, features = [
+    "wasm_js",
+] }
 js-sys = "0.3.77"
 poll-promise = { version = "0.3.0", features = ["web"] }
 tracing-wasm = "0.2.1"
