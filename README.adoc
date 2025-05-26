@@ -1,6 +1,6 @@
 = HMFA
 
-Human Milk Fat Application
+Human Milk Fatty Acids
 
 == https://doi.org/10.1016/j.algal.2018.11.004
 
@@ -73,3 +73,22 @@ Standard deviation:: average distance from the mean
 
 100*40.10/18.30/3=73.041894353369763207
 100*50.60/66.10/3=25.516893595562279375
+
+== Build
+
+=== Web
+
+[source,shell]
+trunk build --release --filehash=false --public-url=https://ippras.github.io/hmfa
+
+== Run
+
+=== Native
+
+[source,shell]
+cargo run
+
+=== Web (http://127.0.0.1:8080)
+
+[source,shell]
+trunk serve --release --filehash=false
