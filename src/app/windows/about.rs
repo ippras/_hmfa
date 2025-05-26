@@ -2,6 +2,8 @@ use crate::app::ICON_SIZE;
 use egui::{Context, Label, RichText, Sense, Widget, Window};
 use egui_phosphor::regular::{COPYRIGHT, GITHUB_LOGO, GLOBE, INFO, WARNING};
 
+const AFFILIATION: &str = "K. A. Timiryazev Institute of Plant Physiology, Russian Academy of Sciences, Botanicheskaya Street 35, 127276 Moscow, Russia";
+
 /// About
 #[derive(Debug, Default)]
 pub(crate) struct About {
@@ -15,12 +17,18 @@ impl About {
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
                     let version = env!("CARGO_PKG_VERSION");
-                    ui.label(format!("HMFA {version}"));
+                    ui.label(RichText::new(format!("HMFA {version}")).heading());
                     ui.label("Human Milk Fatty Acids");
-                    ui.label(COPYRIGHT);
-                    Label::new("Giorgi Kazakov").sense(Sense::click()).ui(ui);
-                    Label::new("Roman Sidorov").sense(Sense::click()).ui(ui);
-                    ui.label("2024");
+                    ui.label(format!("{COPYRIGHT} 2024"));
+                    ui.separator();
+                    ui.heading("Authors");
+                    let authors = env!("CARGO_PKG_AUTHORS");
+                    for author in authors.split(':') {
+                        Label::new(author).sense(Sense::click()).ui(ui);
+                    }
+                    ui.separator();
+                    ui.heading("Affiliation");
+                    Label::new(AFFILIATION).wrap().ui(ui);
                     ui.separator();
                     ui.collapsing(RichText::new("Links").heading(), |ui| {
                         ui.horizontal(|ui| {
