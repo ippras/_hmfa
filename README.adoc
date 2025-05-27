@@ -40,6 +40,14 @@ IQR:: Interquartile range
 P:: P-value, significant difference
 RR:: Reference range (Range)
 
+A:: Диапазон значений базы.
+B:: Сравниваемое значение.
+C:: Какую часть от базы представляет собой разница между сравниваемым и базой. Может быть больше 1, когда разница больше базы.
+D:: Весовой коэффициент в пуле ЖК.
+E::
+F::
+G::
+
 Reference range:: the difference between the highest and lowest values
 Interquartile range:: the range of the middle half of a distribution
 Standard deviation:: average distance from the mean

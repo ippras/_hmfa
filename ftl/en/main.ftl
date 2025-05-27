@@ -6,11 +6,14 @@ composition_panel = composition panel
 configuration_panel = configuration panel
 language = language
 
-precision = Precision
+unsigned = Unsigned
+    .hover = Round negative values to zero.
 precision = Precision
 round = Round
     .hover = Round
 properties = Properties
     .hover = Properties
 relative = Relative
-    .hover = Relative
+    .hover = Use relative base
+to_relative = To relative
+    .hover = Convert experimental stereospecific number 2 values to relative

@@ -17,8 +17,8 @@ pub(crate) struct Settings {
     pub(crate) round: u32,
     pub(crate) sticky: usize,
     pub(crate) truncate: bool,
-
     pub(crate) relative: bool,
+    pub(crate) to_relative: bool,
     pub(crate) properties: bool,
 }
 
@@ -33,6 +33,7 @@ impl Settings {
             sticky: 0,
             truncate: false,
             relative: true,
+            to_relative: false,
             properties: true,
         }
     }
@@ -66,6 +67,12 @@ impl Settings {
             ui.label(ui.localize("relative"));
             ui.checkbox(&mut self.relative, "")
                 .on_hover_localized("relative.hover");
+            ui.end_row();
+            ui.add_enabled(self.relative, |ui: &mut Ui| {
+                ui.label(ui.localize("to_relative"));
+                ui.checkbox(&mut self.to_relative, "")
+                    .on_hover_localized("to_relative.hover")
+            });
         });
     }
 }
